@@ -1,0 +1,26 @@
+{
+  "short_name": "NEON COACH",
+  "name": "NEON COACH - Cyberpunk Fitness Companion",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0d0f12",
+  "theme_color": "#0d0f12",
+  "display": "standalone",
+  "orientation": "portrait"
+}

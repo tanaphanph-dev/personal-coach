@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { AppProvider, AppContext } from './context/AppContext';
 import DashboardView from './components/DashboardView';
 import WorkoutView from './components/WorkoutView';
@@ -6,6 +6,8 @@ import ExercisesView from './components/ExercisesView';
 import NutritionView from './components/NutritionView';
 import ProfileView from './components/ProfileView';
 import AICoachView from './components/AICoachView';
+import AnalyticsView from './components/AnalyticsView';
+import AIWorkoutTracker from './components/AIWorkoutTracker';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -25,6 +27,31 @@ function AppContent() {
 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+          console.log('SW registered with scope: ', reg.scope);
+        }).catch((err) => {
+          console.log('SW registration failed: ', err);
+        });
+      });
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   
   // Create profile form states
   const [newName, setNewName] = useState('');
@@ -71,6 +98,10 @@ function AppContent() {
         return <ProfileView />;
       case 'aicoach':
         return <AICoachView />;
+      case 'analytics':
+        return <AnalyticsView />;
+      case 'aitracker':
+        return <AIWorkoutTracker />;
       default:
         return <DashboardView onNavigate={setActiveTab} />;
     }
@@ -108,6 +139,16 @@ function AppContent() {
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
       </svg>
+    ),
+    analytics: (
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      </svg>
+    ),
+    aitracker: (
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
     )
   };
 
@@ -121,6 +162,23 @@ function AppContent() {
       <header className="cyber-top-bar">
         <span className="top-bar-title">⚡ {t('nav.title')}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* PWA Network Status Badge */}
+          <span 
+            className="cyber-badge" 
+            style={{ 
+              fontSize: '0.6rem', 
+              padding: '2px 6px', 
+              borderRadius: '3px',
+              fontFamily: 'monospace',
+              border: `1px solid ${isOnline ? 'var(--color-cyan)' : 'var(--color-magenta)'}`,
+              color: isOnline ? 'var(--color-cyan)' : 'var(--color-magenta)',
+              background: isOnline ? 'rgba(0, 242, 254, 0.05)' : 'rgba(255, 0, 128, 0.05)',
+              textShadow: isOnline ? '0 0 4px var(--color-cyan)' : '0 0 4px var(--color-magenta)',
+              boxShadow: isOnline ? '0 0 5px rgba(0, 242, 254, 0.1)' : '0 0 5px rgba(255, 0, 128, 0.1)'
+            }}
+          >
+            {isOnline ? '📶 ONLINE' : '📴 OFFLINE'}
+          </span>
           {/* ปุ่มสลับภาษา TH/EN สำหรับมือถือ */}
           <button 
             className="cyber-btn" 
@@ -148,16 +206,35 @@ function AppContent() {
 
       {/* เมนูด้านข้างของหน้าจอคอม (Desktop Sidebar) */}
       <aside className="cyber-sidebar">
-        <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>⚡ {t('nav.title')}</span>
-          {/* ปุ่มสลับภาษา TH/EN สำหรับคอมพิวเตอร์ */}
-          <button 
-            className="cyber-btn" 
-            style={{ padding: '4px 8px', fontSize: '0.7rem', minWidth: '40px', textTransform: 'uppercase' }}
-            onClick={handleLanguageToggle}
+        <div className="sidebar-logo" style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'start' }}>
+          <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>⚡ {t('nav.title')}</span>
+            {/* ปุ่มสลับภาษา TH/EN สำหรับคอมพิวเตอร์ */}
+            <button 
+              className="cyber-btn" 
+              style={{ padding: '4px 8px', fontSize: '0.7rem', minWidth: '40px', textTransform: 'uppercase' }}
+              onClick={handleLanguageToggle}
+            >
+              {language === 'th' ? 'English' : 'ไทย'}
+            </button>
+          </div>
+          {/* Desktop PWA Status Badge */}
+          <span 
+            style={{ 
+              fontSize: '0.55rem', 
+              padding: '2px 6px', 
+              borderRadius: '2px',
+              fontFamily: 'monospace',
+              border: `1px solid ${isOnline ? 'var(--color-cyan)' : 'var(--color-magenta)'}`,
+              color: isOnline ? 'var(--color-cyan)' : 'var(--color-magenta)',
+              background: isOnline ? 'rgba(0, 242, 254, 0.05)' : 'rgba(255, 0, 128, 0.05)',
+              alignSelf: 'stretch',
+              textAlign: 'center',
+              boxShadow: isOnline ? '0 0 5px rgba(0, 242, 254, 0.05)' : 'none'
+            }}
           >
-            {language === 'th' ? 'English' : 'ไทย'}
-          </button>
+            {isOnline ? '📶 SYSTEM ONLINE (SECURE)' : '📴 LOCAL DISCONNECT (OFFLINE)'}
+          </span>
         </div>
 
         <ul className="sidebar-menu">
@@ -202,6 +279,20 @@ function AppContent() {
           >
             <div style={{ width: '20px', height: '20px', stroke: 'currentColor' }}>{icons.aicoach}</div>
             {t('nav.aicoach')}
+          </li>
+          <li 
+            className={`sidebar-item ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+          >
+            <div style={{ width: '20px', height: '20px', stroke: 'currentColor' }}>{icons.analytics}</div>
+            {t('analytics.title')}
+          </li>
+          <li 
+            className={`sidebar-item ${activeTab === 'aitracker' ? 'active' : ''}`}
+            onClick={() => setActiveTab('aitracker')}
+          >
+            <div style={{ width: '20px', height: '20px', stroke: 'currentColor' }}>{icons.aitracker}</div>
+            {t('aitracker.title')}
           </li>
         </ul>
 
@@ -264,6 +355,20 @@ function AppContent() {
         >
           {icons.aicoach}
           <span>{t('nav.aicoach')}</span>
+        </a>
+        <a 
+          className={`mobile-nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analytics')}
+        >
+          {icons.analytics}
+          <span>{language === 'th' ? 'สถิติ' : 'Charts'}</span>
+        </a>
+        <a 
+          className={`mobile-nav-item ${activeTab === 'aitracker' ? 'active' : ''}`}
+          onClick={() => setActiveTab('aitracker')}
+        >
+          {icons.aitracker}
+          <span>{language === 'th' ? 'กล้อง AI' : 'AI Cam'}</span>
         </a>
       </nav>
 

@@ -3,6 +3,18 @@ import { getTranslation } from '../translations/locale';
 
 export const AppContext = createContext();
 
+const safeJsonParse = (str, fallback) => {
+  if (!str) return fallback;
+  try {
+    const val = JSON.parse(str);
+    return val === null ? fallback : val;
+  } catch (e) {
+    console.error("Failed to parse JSON from localStorage:", e);
+    return fallback;
+  }
+};
+
+
 // รายการท่าออกกำลังกายเริ่มต้นภาษาไทย
 const DEFAULT_EXERCISES = [
   {
@@ -384,10 +396,16 @@ export const AppProvider = ({ children }) => {
   const [routines, setRoutines] = useState(() => {
     const activeId = localStorage.getItem('cp_coach_active_profile_id') || 'p_default';
     const local = localStorage.getItem(`cp_coach_routines_${activeId}`);
-    if (local) return JSON.parse(local);
+    if (local) {
+      const val = safeJsonParse(local, null);
+      if (val) return val;
+    }
     if (activeId === 'p_default') {
       const oldGlobal = localStorage.getItem('cp_coach_routines');
-      if (oldGlobal) return JSON.parse(oldGlobal);
+      if (oldGlobal) {
+        const val = safeJsonParse(oldGlobal, null);
+        if (val) return val;
+      }
     }
     return DEFAULT_ROUTINES;
   });
@@ -396,10 +414,16 @@ export const AppProvider = ({ children }) => {
   const [history, setHistory] = useState(() => {
     const activeId = localStorage.getItem('cp_coach_active_profile_id') || 'p_default';
     const local = localStorage.getItem(`cp_coach_history_${activeId}`);
-    if (local) return JSON.parse(local);
+    if (local) {
+      const val = safeJsonParse(local, null);
+      if (val) return val;
+    }
     if (activeId === 'p_default') {
       const oldGlobal = localStorage.getItem('cp_coach_history');
-      if (oldGlobal) return JSON.parse(oldGlobal);
+      if (oldGlobal) {
+        const val = safeJsonParse(oldGlobal, null);
+        if (val) return val;
+      }
     }
     return DEFAULT_HISTORY;
   });
@@ -408,10 +432,16 @@ export const AppProvider = ({ children }) => {
   const [nutritionLog, setNutritionLog] = useState(() => {
     const activeId = localStorage.getItem('cp_coach_active_profile_id') || 'p_default';
     const local = localStorage.getItem(`cp_coach_nutrition_${activeId}`);
-    if (local) return JSON.parse(local);
+    if (local) {
+      const val = safeJsonParse(local, null);
+      if (val) return val;
+    }
     if (activeId === 'p_default') {
       const oldGlobal = localStorage.getItem('cp_coach_nutrition');
-      if (oldGlobal) return JSON.parse(oldGlobal);
+      if (oldGlobal) {
+        const val = safeJsonParse(oldGlobal, null);
+        if (val) return val;
+      }
     }
     return DEFAULT_NUTRITION;
   });
@@ -420,10 +450,16 @@ export const AppProvider = ({ children }) => {
   const [exercises, setExercises] = useState(() => {
     const activeId = localStorage.getItem('cp_coach_active_profile_id') || 'p_default';
     const local = localStorage.getItem(`cp_coach_exercises_${activeId}`);
-    if (local) return JSON.parse(local);
+    if (local) {
+      const val = safeJsonParse(local, null);
+      if (val) return val;
+    }
     if (activeId === 'p_default') {
       const oldGlobal = localStorage.getItem('cp_coach_exercises');
-      if (oldGlobal) return JSON.parse(oldGlobal);
+      if (oldGlobal) {
+        const val = safeJsonParse(oldGlobal, null);
+        if (val) return val;
+      }
     }
     return DEFAULT_EXERCISES;
   });
@@ -491,16 +527,16 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const suffix = activeProfileId;
     const localRoutines = localStorage.getItem(`cp_coach_routines_${suffix}`);
-    setRoutines(localRoutines ? JSON.parse(localRoutines) : DEFAULT_ROUTINES);
+    setRoutines(safeJsonParse(localRoutines, DEFAULT_ROUTINES));
 
     const localHistory = localStorage.getItem(`cp_coach_history_${suffix}`);
-    setHistory(localHistory ? JSON.parse(localHistory) : DEFAULT_HISTORY);
+    setHistory(safeJsonParse(localHistory, DEFAULT_HISTORY));
 
     const localNutrition = localStorage.getItem(`cp_coach_nutrition_${suffix}`);
-    setNutritionLog(localNutrition ? JSON.parse(localNutrition) : DEFAULT_NUTRITION);
+    setNutritionLog(safeJsonParse(localNutrition, DEFAULT_NUTRITION));
 
     const localExercises = localStorage.getItem(`cp_coach_exercises_${suffix}`);
-    setExercises(localExercises ? JSON.parse(localExercises) : DEFAULT_EXERCISES);
+    setExercises(safeJsonParse(localExercises, DEFAULT_EXERCISES));
   }, [activeProfileId]);
 
   // บันทึกและลบคีย์ Gemini API
@@ -876,10 +912,10 @@ export const AppProvider = ({ children }) => {
         const n = localStorage.getItem(`cp_coach_nutrition_${p.id}`);
         const e = localStorage.getItem(`cp_coach_exercises_${p.id}`);
         acc[p.id] = {
-          routines: r ? JSON.parse(r) : [],
-          history: h ? JSON.parse(h) : [],
-          nutritionLog: n ? JSON.parse(n) : {},
-          exercises: e ? JSON.parse(e) : []
+          routines: safeJsonParse(r, []),
+          history: safeJsonParse(h, []),
+          nutritionLog: safeJsonParse(n, {}),
+          exercises: safeJsonParse(e, [])
         };
         return acc;
       }, {})

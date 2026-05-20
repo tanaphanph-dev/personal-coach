@@ -270,6 +270,41 @@ export const translations = {
       rankRunner: 'Neon Runner',
       rankMerc: 'Cyber-Merc',
       rankLegend: 'Night City Legend'
+    },
+    analytics: {
+      title: 'สถิติวิเคราะห์เชิงลึก (Analytics)',
+      oneRepMax: 'การประเมิน 1RM สูงสุด (One Rep Max)',
+      oneRepMaxDesc: 'ขีดจำกัดน้ำหนักยกสูงสุดที่แนะนำสำหรับ 1 ครั้ง (คำนวณจากสถิติจริง)',
+      muscleWorkload: 'สัดส่วนกล้ามเนื้อที่ถูกกระตุ้น (Workload)',
+      muscleWorkloadDesc: 'สัดส่วนภาระงานรวมเซต x ครั้ง x น้ำหนัก แยกตามประเภทกล้ามเนื้อ',
+      calorieWeekly: 'เปรียบเทียบแคลอรีสะสม 7 วัน',
+      calorieWeeklyDesc: 'แคลอรีที่บริโภคจริงเทียบกับเป้าหมาย',
+      selectExercise: 'เลือกท่าสำหรับวิเคราะห์:',
+      noData: 'ยังไม่มีสถิติที่เหมาะสม กรุณาทำการบันทึกข้อมูลออกกำลังกายในระบบ',
+      noCalorieData: 'ยังไม่มีสถิติโภชนาการสำหรับสัปดาห์นี้',
+      surplus: 'เกินเป้าหมาย',
+      deficit: 'ขาดดุล (ลดไขมัน)',
+      target: 'เป้าหมาย',
+      actual: 'ได้รับจริง'
+    },
+    aitracker: {
+      title: 'ระบบกล้อง AI ตรวจนับครั้ง (AI Video Tracker)',
+      desc: 'เปิดกล้องและฟิตร่างกายของคุณ หน้าจอ AI จะตรวจจับความเคลื่อนไหวและนับครั้งอัตโนมัติ!',
+      startCamera: 'เปิดใช้งานกล้องวิดีโอ',
+      stopCamera: 'ปิดกล้องถ่ายวิดีโอ',
+      selectExercise: 'เลือกท่าสำหรับนับครั้ง:',
+      squat: 'สควอท (Squat)',
+      pushup: 'วิดพื้น (Push-up)',
+      curl: 'ดัมเบลเคิร์ล (Bicep Curl)',
+      count: 'จำนวนครั้ง (Reps)',
+      saveToLog: 'บันทึกจำนวนครั้งลงประวัติการซ้อม',
+      bonusXp: 'ได้รับโบนัส XP พิเศษ +15!',
+      statusReady: 'ระบบตรวจจับร่างกายพร้อมแล้ว...',
+      statusActive: 'กำลังตรวจจับการเคลื่อนที่และฟอร์ม...',
+      toastSaved: 'บันทึกสถิติออกกำลังกายจำนวนครั้งพร้อมโบนัส XP สำเร็จ!',
+      voiceRep: 'เร็ป',
+      voiceFormLow: 'ย่อต่ำลงอีกนิด',
+      voiceFormBack: 'ระวังหลังตรงด้วย'
     }
   },
   en: {
@@ -543,6 +578,41 @@ export const translations = {
       rankRunner: 'Neon Runner',
       rankMerc: 'Cyber-Merc',
       rankLegend: 'Night City Legend'
+    },
+    analytics: {
+      title: 'Interactive Strength Analytics',
+      oneRepMax: '1RM Strength Estimation (One Rep Max)',
+      oneRepMaxDesc: 'Calculated maximum theoretical weight you can lift for 1 repetition.',
+      muscleWorkload: 'Muscle Workload Distribution',
+      muscleWorkloadDesc: 'Total volume (Sets x Reps x Weight) divided by muscle groups.',
+      calorieWeekly: '7-Day Calorie Balance',
+      calorieWeeklyDesc: 'Daily actual intake compared to target goal.',
+      selectExercise: 'Select exercise to plot:',
+      noData: 'Insufficient training data. Log workouts to populate charts.',
+      noCalorieData: 'No calorie entries recorded for this week.',
+      surplus: 'Surplus',
+      deficit: 'Deficit',
+      target: 'Target',
+      actual: 'Actual'
+    },
+    aitracker: {
+      title: 'AI Video Motion Tracker',
+      desc: 'Turn on your webcam. The cybernetic system will track joint movements and count reps automatically!',
+      startCamera: 'Initialize Web Camera',
+      stopCamera: 'Terminate Video Feed',
+      selectExercise: 'Select exercise to track:',
+      squat: 'Squats',
+      pushup: 'Pushups',
+      curl: 'Bicep Curls',
+      count: 'Reps Counted',
+      saveToLog: 'Save Counted Reps to Logs',
+      bonusXp: 'AI Bonus XP +15 awarded!',
+      statusReady: 'Cybernetic tracking active. Calibrating posture...',
+      statusActive: 'Tracking movement vectors and joint angles...',
+      toastSaved: 'Logged session statistics and claimed AI bonus XP!',
+      voiceRep: 'Rep',
+      voiceFormLow: 'Lower your body',
+      voiceFormBack: 'Keep your spine straight'
     }
   }
 };
