@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 
 export default function DashboardView({ onNavigate }) {
-  const { history, nutritionLog, userProfile, getStreakCount, getTodayString, language, t } = useContext(AppContext);
+  const { history, nutritionLog, userProfile, getStreakCount, getTodayString, language, t, getDailyQuests, buyCyberware, claimQuestReward } = useContext(AppContext);
   
   const streak = getStreakCount();
   const todayStr = getTodayString();
