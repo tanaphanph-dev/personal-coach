@@ -18,7 +18,9 @@ function AppContent() {
     deleteProfile, 
     language, 
     setLanguage, 
-    t 
+    t,
+    lastLevelUp,
+    setLastLevelUp
   } = useContext(AppContext);
 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -460,6 +462,56 @@ function AppContent() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Level Up Showcase Overlay */}
+      {lastLevelUp && (
+        <div className="cyber-modal-overlay" style={{ zIndex: 9999, background: 'rgba(5, 5, 10, 0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-panel trim-magenta" style={{ 
+            maxWidth: '460px', 
+            width: '90%', 
+            padding: '40px 30px', 
+            textAlign: 'center', 
+            background: 'rgba(15, 10, 25, 0.95)', 
+            border: '2px solid var(--color-magenta)', 
+            boxShadow: 'var(--shadow-magenta)',
+            borderRadius: '8px',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Ambient glows */}
+            <div style={{ position: 'absolute', top: '-10%', left: '50%', transform: 'translateX(-50%)', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(236, 72, 153, 0.3) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            
+            <div style={{ fontSize: '4.5rem', marginBottom: '20px', filter: 'drop-shadow(0 0 12px var(--color-magenta))' }}>⚡</div>
+            
+            <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--color-magenta)', letterSpacing: '2px', fontSize: '2.2rem', margin: '0 0 10px 0', textShadow: 'var(--shadow-magenta)', fontWeight: 'bold' }}>
+              {t('rpg.levelUpTitle')}
+            </h2>
+            
+            <p style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 'bold', margin: '0 0 24px 0' }}>
+              {t('rpg.levelUpSub')}
+            </p>
+            
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+              <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', textDecoration: 'line-through' }}>
+                LEVEL {lastLevelUp.level - 1}
+              </span>
+              <span style={{ fontSize: '1.5rem', color: 'var(--color-cyan)' }}>➔</span>
+              <span className="badge-neon" style={{ fontSize: '2rem', padding: '6px 16px', background: 'rgba(236,72,153,0.15)', border: '2px solid var(--color-magenta)', borderRadius: '6px', color: 'var(--color-magenta)', textShadow: 'var(--shadow-magenta)', fontWeight: 'bold' }}>
+                LVL {lastLevelUp.level}
+              </span>
+            </div>
+            
+            <button 
+              type="button" 
+              className="cyber-btn trim-magenta" 
+              style={{ width: '100%', padding: '14px', fontSize: '0.95rem', fontWeight: 'bold', border: '1px solid var(--color-magenta)', boxShadow: 'var(--shadow-magenta)', letterSpacing: '1px' }}
+              onClick={() => setLastLevelUp(null)}
+            >
+              {t('rpg.levelUpConfirm')}
+            </button>
+          </div>
         </div>
       )}
     </>

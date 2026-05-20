@@ -237,6 +237,120 @@ export default function ProfileView() {
           </form>
         </div>
 
+        {/* Interactive Cybernetic Avatar */}
+        <div className="glass-panel trim-magenta" style={{ marginTop: '20px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, right: 0, width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          
+          <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', alignSelf: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px', margin: 0, color: 'var(--color-magenta)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>🤖 Cybernetic Avatar Matrix</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Sync Rate: {(userProfile.cyberware || []).length * 25}%</span>
+          </h3>
+          
+          <svg width="200" height="280" viewBox="0 0 200 280" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
+            <defs>
+              <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <filter id="glow-magenta" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <filter id="glow-yellow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Wireframe human outline */}
+            <circle cx="100" cy="50" r="18" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+            <path d="M 85,50 A 15,15 0 0,0 115,50" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2,2" />
+            <line x1="100" y1="68" x2="100" y2="150" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
+            <ellipse cx="100" cy="95" rx="30" ry="20" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+            <ellipse cx="100" cy="125" rx="25" ry="12" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+
+            {/* Arms path */}
+            <path d="M 70,85 L 45,115 L 35,150" fill="none" stroke={(userProfile.cyberware || []).includes('arms') ? 'var(--color-cyan)' : 'rgba(255,255,255,0.15)'} strokeWidth={(userProfile.cyberware || []).includes('arms') ? '3.5' : '1.5'} filter={(userProfile.cyberware || []).includes('arms') ? 'url(#glow-cyan)' : ''} />
+            <path d="M 130,85 L 155,115 L 165,150" fill="none" stroke={(userProfile.cyberware || []).includes('arms') ? 'var(--color-cyan)' : 'rgba(255,255,255,0.15)'} strokeWidth={(userProfile.cyberware || []).includes('arms') ? '3.5' : '1.5'} filter={(userProfile.cyberware || []).includes('arms') ? 'url(#glow-cyan)' : ''} />
+
+            {/* Legs path */}
+            <path d="M 85,150 L 75,200 L 70,260" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+            <path d="M 115,150 L 125,200 L 130,260" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+
+            {/* Kiroshi Optics Eye */}
+            <circle 
+              cx="103" 
+              cy="47" 
+              r={(userProfile.cyberware || []).includes('kiroshi') ? '6' : '3'} 
+              fill={(userProfile.cyberware || []).includes('kiroshi') ? 'var(--color-cyan)' : 'rgba(255,255,255,0.2)'} 
+              stroke={(userProfile.cyberware || []).includes('kiroshi') ? '#fff' : 'none'}
+              strokeWidth="1"
+              filter={(userProfile.cyberware || []).includes('kiroshi') ? 'url(#glow-cyan)' : ''}
+            />
+
+            {/* Subdermal Armor Plate lines */}
+            {(userProfile.cyberware || []).includes('armor') && (
+              <path 
+                d="M 80,95 L 120,95 M 85,110 L 115,110 M 90,125 L 110,125" 
+                stroke="var(--color-magenta)" 
+                strokeWidth="2.5" 
+                filter="url(#glow-magenta)"
+              />
+            )}
+
+            {/* Sandevistan Modules */}
+            {(userProfile.cyberware || []).includes('sandevistan') ? (
+              <g filter="url(#glow-yellow)">
+                <rect x="97" y="75" width="6" height="8" rx="1" fill="var(--color-yellow)" />
+                <rect x="97" y="90" width="6" height="8" rx="1" fill="var(--color-yellow)" />
+                <rect x="97" y="105" width="6" height="8" rx="1" fill="var(--color-yellow)" />
+                <rect x="97" y="120" width="6" height="8" rx="1" fill="var(--color-yellow)" />
+                <rect x="97" y="135" width="6" height="8" rx="1" fill="var(--color-yellow)" />
+              </g>
+            ) : (
+              <g opacity="0.3">
+                <rect x="98" y="75" width="4" height="6" rx="1" fill="white" />
+                <rect x="98" y="90" width="4" height="6" rx="1" fill="white" />
+                <rect x="98" y="105" width="4" height="6" rx="1" fill="white" />
+                <rect x="98" y="120" width="4" height="6" rx="1" fill="white" />
+              </g>
+            )}
+
+            {/* Gorilla Arms indicator points */}
+            {(userProfile.cyberware || []).includes('arms') && (
+              <g filter="url(#glow-cyan)">
+                <circle cx="35" cy="150" r="5" fill="var(--color-cyan)" />
+                <circle cx="165" cy="150" r="5" fill="var(--color-cyan)" />
+              </g>
+            )}
+          </svg>
+
+          {/* Cyberware tags */}
+          <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+            <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: (userProfile.cyberware || []).includes('kiroshi') ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255,255,255,0.05)', color: (userProfile.cyberware || []).includes('kiroshi') ? 'var(--color-cyan)' : 'var(--text-secondary)', border: `1px solid ${(userProfile.cyberware || []).includes('kiroshi') ? 'var(--color-cyan)' : 'transparent'}` }}>
+              Kiroshi Optics {(userProfile.cyberware || []).includes('kiroshi') ? '✓' : '✗'}
+            </span>
+            <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: (userProfile.cyberware || []).includes('armor') ? 'rgba(255, 0, 128, 0.15)' : 'rgba(255,255,255,0.05)', color: (userProfile.cyberware || []).includes('armor') ? 'var(--color-magenta)' : 'var(--text-secondary)', border: `1px solid ${(userProfile.cyberware || []).includes('armor') ? 'var(--color-magenta)' : 'transparent'}` }}>
+              Subdermal Armor {(userProfile.cyberware || []).includes('armor') ? '✓' : '✗'}
+            </span>
+            <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: (userProfile.cyberware || []).includes('arms') ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255,255,255,0.05)', color: (userProfile.cyberware || []).includes('arms') ? 'var(--color-cyan)' : 'var(--text-secondary)', border: `1px solid ${(userProfile.cyberware || []).includes('arms') ? 'var(--color-cyan)' : 'transparent'}` }}>
+              Gorilla Arms {(userProfile.cyberware || []).includes('arms') ? '✓' : '✗'}
+            </span>
+            <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: (userProfile.cyberware || []).includes('sandevistan') ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255,255,255,0.05)', color: (userProfile.cyberware || []).includes('sandevistan') ? 'var(--color-yellow)' : 'var(--text-secondary)', border: `1px solid ${(userProfile.cyberware || []).includes('sandevistan') ? 'var(--color-yellow)' : 'transparent'}` }}>
+              Sandevistan {(userProfile.cyberware || []).includes('sandevistan') ? '✓' : '✗'}
+            </span>
+          </div>
+        </div>
+
         {/* ส่วนขวา: จัดการอัตลักษณ์ผู้ใช้ คีย์ Gemini AI และจัดข้อมูลสำรอง */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           

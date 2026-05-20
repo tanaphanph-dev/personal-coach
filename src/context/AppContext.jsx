@@ -302,7 +302,15 @@ export const AppProvider = ({ children }) => {
     const localProfiles = localStorage.getItem('cp_coach_profiles');
     if (localProfiles) {
       try {
-        return JSON.parse(localProfiles);
+        const parsed = JSON.parse(localProfiles);
+        return parsed.map(p => ({
+          level: 1,
+          xp: 0,
+          chips: 100,
+          cyberware: [],
+          claimedQuests: {},
+          ...p
+        }));
       } catch (e) {
         console.error("Profiles parse error:", e);
       }
@@ -313,6 +321,11 @@ export const AppProvider = ({ children }) => {
       try {
         const oldProfile = JSON.parse(localOldProfile);
         return [{
+          level: 1,
+          xp: 0,
+          chips: 100,
+          cyberware: [],
+          claimedQuests: {},
           ...oldProfile,
           id: 'p_default'
         }];
@@ -332,7 +345,12 @@ export const AppProvider = ({ children }) => {
         dailyProtein: 144,
         dailyCarbs: 270,
         dailyFat: 80,
-        waterGoal: 10
+        waterGoal: 10,
+        level: 1,
+        xp: 0,
+        chips: 100,
+        cyberware: [],
+        claimedQuests: {}
       }
     ];
   };
@@ -341,6 +359,8 @@ export const AppProvider = ({ children }) => {
   const [activeProfileId, setActiveProfileId] = useState(() => {
     return localStorage.getItem('cp_coach_active_profile_id') || 'p_default';
   });
+
+  const [lastLevelUp, setLastLevelUp] = useState(null);
 
   const activeProfile = profiles.find(p => p.id === activeProfileId) || profiles[0] || {
     id: 'p_default',
@@ -352,7 +372,12 @@ export const AppProvider = ({ children }) => {
     dailyProtein: 144,
     dailyCarbs: 270,
     dailyFat: 80,
-    waterGoal: 10
+    waterGoal: 10,
+    level: 1,
+    xp: 0,
+    chips: 100,
+    cyberware: [],
+    claimedQuests: {}
   };
 
   // แผนรองรับ Routines รายผู้ใช้
@@ -527,9 +552,185 @@ export const AppProvider = ({ children }) => {
     return new Date().toISOString().split('T')[0];
   };
 
+  // RPG State functions
+  const gainXpAndChips = (xpAmount, chipsAmount) => {
+    let levelUpOccurred = false;
+    let newLvl = 1;
+    
+    setProfiles(prev => prev.map(p => {
+      if (p.id === activeProfileId) {
+        const currentLvl = p.level || 1;
+        const currentXp = p.xp || 0;
+        const currentChips = p.chips || 0;
+        
+        let tempXp = currentXp + xpAmount;
+        let tempLvl = currentLvl;
+        let xpNeeded = tempLvl * 100;
+        
+        while (tempXp >= xpNeeded) {
+          tempXp -= xpNeeded;
+          tempLvl++;
+          xpNeeded = tempLvl * 100;
+          levelUpOccurred = true;
+        }
+        
+        newLvl = tempLvl;
+        
+        return {
+          ...p,
+          level: tempLvl,
+          xp: tempXp,
+          chips: currentChips + chipsAmount
+        };
+      }
+      return p;
+    }));
+
+    if (levelUpOccurred) {
+      setLastLevelUp({ level: newLvl });
+    }
+  };
+
+  const buyCyberware = (cyberwareId, price, reqLevel) => {
+    const lvl = activeProfile.level || 1;
+    const chp = activeProfile.chips || 0;
+    const cware = activeProfile.cyberware || [];
+    
+    if (lvl < reqLevel) {
+      showToast(t('rpg.shopReqLevel', { lvl: reqLevel }), 'error');
+      return false;
+    }
+    if (chp < price) {
+      showToast(t('rpg.notEnoughChips'), 'error');
+      return false;
+    }
+    if (cware.includes(cyberwareId)) {
+      return false;
+    }
+    
+    setProfiles(prev => prev.map(p => {
+      if (p.id === activeProfileId) {
+        const currentChips = p.chips || 0;
+        const currentCyberware = p.cyberware || [];
+        return {
+          ...p,
+          chips: currentChips - price,
+          cyberware: [...currentCyberware, cyberwareId]
+        };
+      }
+      return p;
+    }));
+    
+    const itemName = t(`rpg.${cyberwareId}_title`) || cyberwareId;
+    showToast(t('rpg.toastPurchased', { name: itemName }), 'success');
+    return true;
+  };
+
+  const getDailyQuests = () => {
+    const today = getTodayString();
+    const todayData = nutritionLog[today] || { water: 0, foods: [] };
+    const todayWater = todayData.water || 0;
+    const todayWorkout = history.filter(log => log.date === today).length;
+    const todayFoodCal = (todayData.foods || []).reduce((sum, f) => sum + (f.calories || 0), 0);
+    const todayRoutines = routines.length;
+
+    const claimed = activeProfile.claimedQuests?.[today] || [];
+
+    return [
+      {
+        id: 'q_water',
+        title: t('rpg.q_water_title'),
+        desc: t('rpg.q_water_desc', { current: todayWater }),
+        target: 8,
+        current: todayWater,
+        isCompleted: todayWater >= 8,
+        isClaimed: claimed.includes('q_water'),
+        xpReward: 100,
+        chipsReward: 50
+      },
+      {
+        id: 'q_workout',
+        title: t('rpg.q_workout_title'),
+        desc: t('rpg.q_workout_desc', { current: todayWorkout }),
+        target: 1,
+        current: todayWorkout,
+        isCompleted: todayWorkout >= 1,
+        isClaimed: claimed.includes('q_workout'),
+        xpReward: 100,
+        chipsReward: 50
+      },
+      {
+        id: 'q_nutrition',
+        title: t('rpg.q_nutrition_title'),
+        desc: t('rpg.q_nutrition_desc', { current: todayFoodCal }),
+        target: 1500,
+        current: todayFoodCal,
+        isCompleted: todayFoodCal >= 1500,
+        isClaimed: claimed.includes('q_nutrition'),
+        xpReward: 100,
+        chipsReward: 50
+      },
+      {
+        id: 'q_routine',
+        title: t('rpg.q_routine_title'),
+        desc: t('rpg.q_routine_desc', { current: todayRoutines }),
+        target: 1,
+        current: todayRoutines,
+        isCompleted: todayRoutines >= 1,
+        isClaimed: claimed.includes('q_routine'),
+        xpReward: 100,
+        chipsReward: 50
+      }
+    ];
+  };
+
+  const claimQuestReward = (questId) => {
+    const quests = getDailyQuests();
+    const quest = quests.find(q => q.id === questId);
+    if (!quest || !quest.isCompleted || quest.isClaimed) return;
+    
+    const today = getTodayString();
+    
+    setProfiles(prev => prev.map(p => {
+      if (p.id === activeProfileId) {
+        const claimed = p.claimedQuests || {};
+        const todayClaimed = claimed[today] || [];
+        if (todayClaimed.includes(questId)) return p;
+        return {
+          ...p,
+          claimedQuests: {
+            ...claimed,
+            [today]: [...todayClaimed, questId]
+          }
+        };
+      }
+      return p;
+    }));
+    
+    const doubleXp = (activeProfile.cyberware || []).includes('sandevistan');
+    const finalXp = doubleXp ? quest.xpReward * 2 : quest.xpReward;
+    
+    gainXpAndChips(finalXp, quest.chipsReward);
+  };
+
   const addWorkoutLog = (log) => {
     setHistory(prev => [log, ...prev]);
     showToast(t('workout.toastSaved'), 'success');
+
+    // RPG: Base reward for completing workout routine
+    let totalXp = 50;
+    let totalChips = 20;
+
+    // Additional reward per exercise performed
+    const exCount = log.exercises?.length || 0;
+    if (exCount > 0) {
+      const hasArms = (activeProfile.cyberware || []).includes('arms');
+      const bonusXp = hasArms ? 10 : 0;
+      totalXp += (25 + bonusXp) * exCount;
+      totalChips += 10 * exCount;
+    }
+
+    gainXpAndChips(totalXp, totalChips);
   };
 
   const updateProfile = (profileData) => {
@@ -557,7 +758,12 @@ export const AppProvider = ({ children }) => {
       dailyProtein: Number(profileData.dailyProtein || 120),
       dailyCarbs: Number(profileData.dailyCarbs || 230),
       dailyFat: Number(profileData.dailyFat || 65),
-      waterGoal: Number(profileData.waterGoal || 8)
+      waterGoal: Number(profileData.waterGoal || 8),
+      level: 1,
+      xp: 0,
+      chips: 100,
+      cyberware: [],
+      claimedQuests: {}
     };
 
     setProfiles(prev => [...prev, newProfile]);
@@ -572,7 +778,6 @@ export const AppProvider = ({ children }) => {
       return;
     }
 
-    // Clean up local storage data for this user ID
     localStorage.removeItem(`cp_coach_routines_${profileId}`);
     localStorage.removeItem(`cp_coach_history_${profileId}`);
     localStorage.removeItem(`cp_coach_nutrition_${profileId}`);
@@ -602,7 +807,7 @@ export const AppProvider = ({ children }) => {
     showToast(t('workout.toastDeleted'), 'success');
   };
 
-  const addFoodLog = (date, food) => {
+  const addFoodLog = (date, food, isScanned = false) => {
     setNutritionLog(prev => {
       const dayData = prev[date] || { water: 0, foods: [] };
       return {
@@ -614,6 +819,15 @@ export const AppProvider = ({ children }) => {
       };
     });
     showToast(t('nutrition.toastAdded', { name: food.name }), 'success');
+
+    // RPG: Reward XP & Chips for logging food
+    if (isScanned) {
+      const hasKiroshi = (activeProfile.cyberware || []).includes('kiroshi');
+      const bonusXp = hasKiroshi ? 5 : 0;
+      gainXpAndChips(20 + bonusXp, 10);
+    } else {
+      gainXpAndChips(15, 5);
+    }
   };
 
   const removeFoodLog = (date, id) => {
@@ -643,6 +857,13 @@ export const AppProvider = ({ children }) => {
         }
       };
     });
+
+    // RPG: Only reward if adding water
+    if (amount > 0) {
+      const hasArmor = (activeProfile.cyberware || []).includes('armor');
+      const bonusXp = hasArmor ? 2 : 0;
+      gainXpAndChips((5 + bonusXp) * amount, 2 * amount);
+    }
   };
 
   const exportData = () => {
@@ -747,7 +968,12 @@ export const AppProvider = ({ children }) => {
       dailyProtein: 144,
       dailyCarbs: 270,
       dailyFat: 80,
-      waterGoal: 10
+      waterGoal: 10,
+      level: 1,
+      xp: 0,
+      chips: 100,
+      cyberware: [],
+      claimedQuests: {}
     };
 
     setProfiles([defaultProfile]);
@@ -787,7 +1013,13 @@ export const AppProvider = ({ children }) => {
       addWater,
       exportData,
       importData,
-      resetData
+      resetData,
+      lastLevelUp,
+      setLastLevelUp,
+      gainXpAndChips,
+      buyCyberware,
+      claimQuestReward,
+      getDailyQuests
     }}>
       {children}
       {toast && (

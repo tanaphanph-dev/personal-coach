@@ -135,11 +135,189 @@ export default function DashboardView({ onNavigate }) {
     );
   };
 
+  // RPG Progression
+  const level = userProfile.level || 1;
+  const xp = userProfile.xp || 0;
+  const chips = userProfile.chips || 0;
+  const cyberware = userProfile.cyberware || [];
+  const xpNeeded = level * 100;
+  const xpPercent = Math.min(100, Math.round((xp / xpNeeded) * 100));
+
+  const getRank = (lvl) => {
+    if (lvl >= 15) return t('rpg.rankLegend');
+    if (lvl >= 10) return t('rpg.rankMerc');
+    if (lvl >= 5) return t('rpg.rankRunner');
+    return t('rpg.rankStreetKid');
+  };
+
+  const dailyQuests = getDailyQuests();
+
+  const cyberwareItems = [
+    { id: 'kiroshi', price: 120, reqLevel: 1 },
+    { id: 'armor', price: 180, reqLevel: 2 },
+    { id: 'arms', price: 250, reqLevel: 3 },
+    { id: 'sandevistan', price: 400, reqLevel: 4 },
+  ];
+
   return (
     <div className="cyber-container">
       <h2 style={{ marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ color: 'var(--color-cyan)' }}>⚡</span> {t('dashboard.title')}
       </h2>
+
+      {/* RPG Progression HUD */}
+      <div className="glass-panel trim-magenta" style={{ padding: '20px', borderRadius: '8px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        
+        <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '16px', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+              <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--text-secondary)' }}>
+                {t('rpg.rank')}
+              </span>
+              <span style={{ fontFamily: 'var(--font-display)', color: 'var(--color-magenta)', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                {getRank(level)}
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className="badge-neon" style={{ fontSize: '1.1rem', padding: '4px 8px', background: 'rgba(236,72,153,0.1)', border: '1px solid var(--color-magenta)', borderRadius: '4px', textShadow: 'var(--shadow-magenta)', color: 'var(--color-magenta)' }}>
+                LVL {level}
+              </span>
+              <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{userProfile.name}</span>
+            </h3>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '20px' }}>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)' }}>{t('rpg.chips')}</span>
+              <div style={{ color: 'var(--color-yellow)', fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 'bold', textShadow: '0 0 8px rgba(234,179,8,0.3)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                🪙 {chips}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* XP Progress Bar */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '6px' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>PROGRESS SYNCING...</span>
+            <span style={{ color: '#fff', fontWeight: 'bold' }}>{xp} / {xpNeeded} XP ({xpPercent}%)</span>
+          </div>
+          <div style={{ width: '100%', height: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '5px', overflow: 'hidden' }}>
+            <div style={{ width: `${xpPercent}%`, height: '100%', background: 'linear-gradient(90deg, var(--color-magenta), var(--color-cyan))', boxShadow: 'var(--shadow-magenta)', transition: 'width 0.5s ease-out' }}></div>
+          </div>
+        </div>
+      </div>
+
+      {/* RPG Daily Quests & Cyberware Shop Grid */}
+      <div className="grid-2" style={{ marginBottom: '24px' }}>
+        {/* Daily Quests Panel */}
+        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <h3 style={{ fontSize: '1rem', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px', margin: 0 }}>
+              {t('rpg.questTitle')}
+            </h3>
+            <p style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              {t('rpg.questDesc')}
+            </p>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {dailyQuests.map(quest => {
+              const currentVal = Math.min(quest.target, quest.current);
+              const progressPct = Math.round((currentVal / quest.target) * 100);
+              
+              return (
+                <div key={quest.id} className="glass-panel" style={{ background: 'rgba(0,0,0,0.15)', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', border: quest.isCompleted && !quest.isClaimed ? '1px solid var(--color-cyan)' : '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.85rem', color: quest.isCompleted ? 'var(--color-cyan)' : '#fff' }}>{quest.title}</h4>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{quest.desc}</p>
+                    </div>
+                    {quest.isClaimed ? (
+                      <span style={{ fontSize: '0.7rem', padding: '2px 6px', background: 'rgba(255,255,255,0.1)', color: 'var(--text-secondary)', borderRadius: '4px' }}>
+                        {t('rpg.questClaimed')} ✓
+                      </span>
+                    ) : quest.isCompleted ? (
+                      <button 
+                        className="cyber-btn trim-cyan" 
+                        style={{ padding: '4px 8px', fontSize: '0.7rem' }}
+                        onClick={() => claimQuestReward(quest.id)}
+                      >
+                        {t('rpg.questClaim')}
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                        {progressPct}%
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Quest Progress Bar */}
+                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                    <div style={{ width: `${progressPct}%`, height: '100%', background: quest.isCompleted ? 'var(--color-cyan)' : 'var(--color-yellow)' }}></div>
+                  </div>
+
+                  {/* Rewards preview */}
+                  <div style={{ display: 'flex', gap: '10px', fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                    <span>+{quest.xpReward} XP</span>
+                    <span>+{quest.chipsReward} Chips</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Cyberware Shop Panel */}
+        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <h3 style={{ fontSize: '1rem', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px', margin: 0 }}>
+              {t('rpg.shopTitle')}
+            </h3>
+            <p style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              {t('rpg.shopDesc')}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {cyberwareItems.map(item => {
+              const isEquipped = cyberware.includes(item.id);
+              const isLocked = level < item.reqLevel;
+              const title = t(`rpg.${item.id}_title`);
+              const desc = t(`rpg.${item.id}_desc`);
+
+              return (
+                <div key={item.id} className="glass-panel" style={{ background: 'rgba(0,0,0,0.15)', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', border: isEquipped ? '1px solid var(--color-magenta)' : '1px solid rgba(255,255,255,0.05)', opacity: isLocked ? 0.6 : 1 }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.85rem', color: isEquipped ? 'var(--color-magenta)' : '#fff' }}>{title}</h4>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: '1.3' }}>{desc}</p>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    {isEquipped ? (
+                      <span style={{ fontSize: '0.7rem', padding: '4px 8px', background: 'rgba(236,72,153,0.15)', color: 'var(--color-magenta)', border: '1px solid var(--color-magenta)', borderRadius: '4px', textShadow: 'var(--shadow-magenta)' }}>
+                        {t('rpg.shopEquipped')}
+                      </span>
+                    ) : isLocked ? (
+                      <span style={{ fontSize: '0.65rem', color: 'var(--color-magenta)' }}>
+                        {t('rpg.shopReqLevel', { lvl: item.reqLevel })}
+                      </span>
+                    ) : (
+                      <button 
+                        className="cyber-btn" 
+                        style={{ padding: '4px 8px', fontSize: '0.7rem', whiteSpace: 'nowrap' }}
+                        onClick={() => buyCyberware(item.id, item.price, item.reqLevel)}
+                      >
+                        {t('rpg.shopBuy', { price: item.price })}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       {/* AI Coach Banner */}
       <div 

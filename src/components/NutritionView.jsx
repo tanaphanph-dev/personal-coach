@@ -125,7 +125,7 @@ export default function NutritionView() {
       fat: preset.fat,
       time: new Date().toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' })
     };
-    addFoodLog(todayStr, newFood);
+    addFoodLog(todayStr, newFood, true);
   };
 
   // การจัดการไฟล์เมื่ออัปโหลดรูปอาหาร
@@ -261,7 +261,7 @@ If there are multiple food items, combine them into one general meal name and su
       time: new Date().toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' })
     };
 
-    addFoodLog(todayStr, newFood);
+    addFoodLog(todayStr, newFood, true);
     setShowScanModal(false);
     setPreviewUrl(null);
     showToast(t('nutrition.aiSuccessLog'), 'success');
