@@ -24,6 +24,7 @@ export const translations = {
       exercises: 'คลังท่าฝึก',
       nutrition: 'บันทึกอาหาร',
       profile: 'เป้าหมาย',
+      aicoach: 'โค้ช AI',
       title: 'NEON COACH'
     },
     dashboard: {
@@ -200,6 +201,20 @@ export const translations = {
       geminiKeySaved: 'บันทึก Gemini API Key เรียบร้อยแล้ว',
       geminiKeyCleared: 'ลบ Gemini API Key เรียบร้อยแล้ว',
       geminiClearBtn: 'ลบคีย์ AI'
+    },
+    aicoach: {
+      title: 'ระบบโค้ชอัจฉริยะไซเบอร์พังก์',
+      welcome: 'ยินดีต้อนรับสู่ระบบโค้ชส่วนตัวของคุณ ผมจะวิเคราะห์ข้อมูลร่างกาย ตารางฝึกซ้อม และการทานอาหารเพื่อแนะนำสิ่งที่ดีที่สุดให้คุณครับ',
+      placeholder: 'ถามคำถามสุขภาพ หรือสั่ง "ออกแบบตารางฝึกหน้าท้อง"...',
+      btnSend: 'ส่งคำถาม',
+      btnGenRoutine: '🔨 ออกแบบตารางฝึกด่วนด้วย AI',
+      btnMealAdvisor: '🥦 แนะนำอาหารมื้อถัดไป',
+      simulationNotice: 'โหมดจำลอง: แนะนำแผนโภชนาการและตารางซ้อมอิงระดับตัวชี้วัดน้ำหนักส่วนสูงของคุณ กรุณาป้อน API Key ในหน้าเป้าหมายเพื่อใช้ความสามารถ AI ตัวจริง',
+      statusCoaching: 'โค้ช AI กำลังประเมินผลและคำนวณข้อมูลระดับไซเบอร์...',
+      toastRoutineAdded: 'เพิ่มตารางฝึกใหม่ลงในระบบโปรแกรมออกกำลังกายแล้ว!',
+      noApiKeyNotice: 'ระบบกำลังทำงานในโหมดจำลอง (Simulation Mode)',
+      routineTitlePlaceholder: 'ตารางฝึกที่แนะนำโดย AI',
+      mealTitlePlaceholder: 'คำแนะนำการกินมื้อถัดไปโดย AI'
     }
   },
   en: {
@@ -227,6 +242,7 @@ export const translations = {
       exercises: 'Exercises',
       nutrition: 'Nutrition',
       profile: 'Goals',
+      aicoach: 'AI Coach',
       title: 'NEON COACH'
     },
     dashboard: {
@@ -403,6 +419,20 @@ export const translations = {
       geminiKeySaved: 'Gemini API Key saved successfully',
       geminiKeyCleared: 'Gemini API Key deleted',
       geminiClearBtn: 'Delete Key'
+    },
+    aicoach: {
+      title: 'Cyberpunk Intelligent Coach Terminal',
+      welcome: 'Welcome to your personalized AI coach terminal. I analyze your body composition, workout logs, and meals to recommend the best steps.',
+      placeholder: 'Ask fitness questions, or type "design core routine"...',
+      btnSend: 'Send Query',
+      btnGenRoutine: '🔨 AI Generate Routine',
+      btnMealAdvisor: '🥦 AI Meal Advisor',
+      simulationNotice: 'Simulation Mode: Recommending nutrition and workout splits based on your height and weight metrics. Input a Gemini API key in Goals tab to query real Gemini AI.',
+      statusCoaching: 'AI Coach is analyzing logs and calculating cybernetic responses...',
+      toastRoutineAdded: 'New workout routine imported successfully!',
+      noApiKeyNotice: 'System running in Simulation Mode',
+      routineTitlePlaceholder: 'AI Suggested Routine',
+      mealTitlePlaceholder: 'AI Suggested Next Meal'
     }
   }
 };

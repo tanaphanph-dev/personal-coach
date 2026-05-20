@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 
-export default function DashboardView() {
+export default function DashboardView({ onNavigate }) {
   const { history, nutritionLog, userProfile, getStreakCount, getTodayString, language, t } = useContext(AppContext);
   
   const streak = getStreakCount();
@@ -140,6 +140,39 @@ export default function DashboardView() {
       <h2 style={{ marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ color: 'var(--color-cyan)' }}>⚡</span> {t('dashboard.title')}
       </h2>
+
+      {/* AI Coach Banner */}
+      <div 
+        className="glass-panel trim-cyan" 
+        style={{ 
+          background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15))', 
+          border: '1px solid var(--color-cyan)', 
+          padding: '16px', 
+          borderRadius: '8px', 
+          marginBottom: '24px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          boxShadow: 'var(--shadow-cyan)'
+        }}
+        onClick={() => onNavigate && onNavigate('aicoach')}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ fontSize: '2rem' }}>🤖</div>
+          <div>
+            <h4 style={{ margin: 0, color: '#fff', fontSize: '1rem', fontFamily: 'var(--font-display)' }}>
+              {language === 'th' ? 'คุยกับโค้ชสมองกล AI' : 'Consult Your Cyber AI Coach'}
+            </h4>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              {language === 'th' ? 'ออกแบบตารางฝึก ปรับเปลี่ยนสารอาหาร แนะนำมื้อถัดไปด้วยพลังของ Gemini' : 'Design workout routines & dynamically scale calories using Gemini AI.'}
+            </p>
+          </div>
+        </div>
+        <button className="cyber-btn" style={{ padding: '6px 12px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+          {language === 'th' ? 'เปิดขั้วประมวลผล ➔' : 'Access Hub ➔'}
+        </button>
+      </div>
 
       {/* แถวการ์ดสถิติ 3 ช่อง */}
       <div className="grid-3" style={{ marginBottom: '24px' }}>
