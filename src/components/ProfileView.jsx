@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 
 export default function ProfileView() {
@@ -11,6 +11,11 @@ export default function ProfileView() {
     geminiApiKey, 
     saveGeminiApiKey, 
     clearGeminiApiKey, 
+    profiles,
+    activeProfileId,
+    switchProfile,
+    createProfile,
+    deleteProfile,
     t 
   } = useContext(AppContext);
 
@@ -27,6 +32,24 @@ export default function ProfileView() {
 
   // State สำหรับคีย์ Gemini API
   const [apiKeyInput, setApiKeyInput] = useState(geminiApiKey);
+
+  // คอยอัปเดตแบบฟอร์มเมื่อสลับผู้ใช้งาน
+  useEffect(() => {
+    setName(userProfile.name);
+    setWeight(userProfile.weight);
+    setHeight(userProfile.height);
+    setActivityLevel(userProfile.activityLevel);
+    setDailyCalories(userProfile.dailyCalories);
+    setDailyProtein(userProfile.dailyProtein);
+    setDailyCarbs(userProfile.dailyCarbs);
+    setDailyFat(userProfile.dailyFat);
+    setWaterGoal(userProfile.waterGoal);
+  }, [userProfile]);
+
+  // คอยอัปเดตคีย์ Gemini เมื่อคีย์ใน Context มีการเปลี่ยนแปลง
+  useEffect(() => {
+    setApiKeyInput(geminiApiKey);
+  }, [geminiApiKey]);
 
   // ยืนยันบันทึกโปรไฟล์
   const handleSaveProfile = (e) => {
@@ -214,9 +237,101 @@ export default function ProfileView() {
           </form>
         </div>
 
-        {/* ส่วนขวา: จัดการคีย์ Gemini AI และจัดข้อมูลสำรอง */}
+        {/* ส่วนขวา: จัดการอัตลักษณ์ผู้ใช้ คีย์ Gemini AI และจัดข้อมูลสำรอง */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
+          {/* แผงจัดการอัตลักษณ์ (Identity Management) */}
+          <div className="glass-panel trim-cyan">
+            <h3 style={{ fontSize: '1rem', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px', marginBottom: '12px', color: 'var(--color-cyan)' }}>
+              {t('profile.identityHeader')}
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+              {profiles.map(p => (
+                <div 
+                  key={p.id}
+                  style={{
+                    padding: '8px 12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: p.id === activeProfileId ? 'rgba(0, 242, 254, 0.08)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${p.id === activeProfileId ? 'var(--color-cyan)' : 'rgba(255,255,255,0.05)'}`,
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => switchProfile(p.id)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: p.id === activeProfileId ? 'linear-gradient(135deg, var(--color-cyan), var(--color-violet))' : 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', color: p.id === activeProfileId ? 'black' : '#fff' }}>
+                      {p.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: p.id === activeProfileId ? 'var(--color-cyan)' : '#fff' }}>
+                        {p.name} {p.id === activeProfileId && <span style={{ fontSize: '0.6rem', color: 'var(--color-magenta)', marginLeft: '6px' }}>(Active)</span>}
+                      </div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                        {p.weight} kg | {p.dailyCalories} kcal
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {profiles.length > 1 && (
+                    <button 
+                      type="button" 
+                      className="cyber-btn"
+                      style={{ padding: '2px 6px', fontSize: '0.6rem', border: '1px solid var(--color-magenta)', color: 'var(--color-magenta)', background: 'rgba(255,0,128,0.05)', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(t('profile.confirmDeleteProfile', { name: p.name }))) {
+                          deleteProfile(p.id);
+                        }
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Quick Inline Identity Creator */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+              <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '8px', color: 'var(--text-secondary)' }}>
+                {t('profile.createProfileTitle')}
+              </h4>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  className="cyber-input" 
+                  placeholder={t('profile.addProfileBtn')} 
+                  style={{ fontSize: '0.75rem', padding: '8px' }}
+                  id="new-profile-name-input"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                      createProfile({ name: e.target.value.trim() });
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <button 
+                  type="button" 
+                  className="cyber-btn"
+                  style={{ padding: '8px 12px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                  onClick={() => {
+                    const inp = document.getElementById('new-profile-name-input');
+                    if (inp && inp.value.trim()) {
+                      createProfile({ name: inp.value.trim() });
+                      inp.value = '';
+                    }
+                  }}
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* แผง Gemini API Key */}
           <div className="glass-panel trim-cyan">
             <h3 style={{ fontSize: '1rem', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px', marginBottom: '12px', color: 'var(--color-cyan)' }}>

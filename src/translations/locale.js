@@ -200,7 +200,19 @@ export const translations = {
       geminiSaveBtn: 'บันทึก API Key',
       geminiKeySaved: 'บันทึก Gemini API Key เรียบร้อยแล้ว',
       geminiKeyCleared: 'ลบ Gemini API Key เรียบร้อยแล้ว',
-      geminiClearBtn: 'ลบคีย์ AI'
+      geminiClearBtn: 'ลบคีย์ AI',
+
+      // Multi-profile
+      identityHeader: '👥 จัดการอัตลักษณ์ผู้ใช้ (Multi-Profile)',
+      switcherTitle: 'สลับอัตลักษณ์ผู้ใช้งาน',
+      activeIdentity: 'อัตลักษณ์ที่เปิดใช้งาน',
+      addProfileBtn: '+ สร้างอัตลักษณ์ใหม่',
+      createProfileTitle: 'สร้างอัตลักษณ์ใหม่ (New Identity)',
+      deleteProfileBtn: '✕ ลบอัตลักษณ์นี้',
+      switchSuccess: 'สลับระบบไปยังอัตลักษณ์ "{{name}}" แล้ว',
+      createSuccess: 'สร้างอัตลักษณ์ใหม่ "{{name}}" สำเร็จ',
+      deleteSuccess: 'ลบอัตลักษณ์ผู้ใช้งานเรียบร้อยแล้ว',
+      confirmDeleteProfile: 'คุณแน่ใจหรือไม่ว่าต้องการลบอัตลักษณ์ "{{name}}"? ข้อมูลย่อยทั้งหมด (ตารางซ้อม ประวัติ อาหาร) ของอัตลักษณ์นี้จะถูกลบอย่างถาวร!'
     },
     aicoach: {
       title: 'ระบบโค้ชอัจฉริยะไซเบอร์พังก์',
@@ -418,7 +430,19 @@ export const translations = {
       geminiSaveBtn: 'Save API Key',
       geminiKeySaved: 'Gemini API Key saved successfully',
       geminiKeyCleared: 'Gemini API Key deleted',
-      geminiClearBtn: 'Delete Key'
+      geminiClearBtn: 'Delete Key',
+
+      // Multi-profile
+      identityHeader: '👥 User Identity Management (Multi-Profile)',
+      switcherTitle: 'Switch User Identity',
+      activeIdentity: 'Active Identity',
+      addProfileBtn: '+ Create New Identity',
+      createProfileTitle: 'Create New Identity',
+      deleteProfileBtn: '✕ Delete Identity',
+      switchSuccess: 'Switched system to identity "{{name}}"',
+      createSuccess: 'Created new identity "{{name}}" successfully',
+      deleteSuccess: 'Deleted user identity successfully',
+      confirmDeleteProfile: 'Are you sure you want to delete identity "{{name}}"? All routines, logs, and food history associated with this profile will be permanently deleted!'
     },
     aicoach: {
       title: 'Cyberpunk Intelligent Coach Terminal',

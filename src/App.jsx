@@ -9,7 +9,50 @@ import AICoachView from './components/AICoachView';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { userProfile, language, setLanguage, t } = useContext(AppContext);
+  const { 
+    userProfile, 
+    profiles, 
+    activeProfileId, 
+    switchProfile, 
+    createProfile, 
+    deleteProfile, 
+    language, 
+    setLanguage, 
+    t 
+  } = useContext(AppContext);
+
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  // Create profile form states
+  const [newName, setNewName] = useState('');
+  const [newWeight, setNewWeight] = useState(70);
+  const [newHeight, setNewHeight] = useState(170);
+  const [newCal, setNewCal] = useState(2000);
+  const [newWater, setNewWater] = useState(8);
+
+  const handleCreateSubmit = (e) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    createProfile({
+      name: newName,
+      weight: newWeight,
+      height: newHeight,
+      dailyCalories: newCal,
+      dailyProtein: Math.round(newWeight * 2), // Auto estimate macros
+      dailyCarbs: Math.round(newCal * 0.45 / 4),
+      dailyFat: Math.round(newCal * 0.3 / 9),
+      waterGoal: newWater
+    });
+    // Reset states
+    setNewName('');
+    setNewWeight(70);
+    setNewHeight(170);
+    setNewCal(2000);
+    setNewWater(8);
+    setIsCreateModalOpen(false);
+  };
+
 
   // สลับแท็บหน้าเพจการแสดงผล
   const renderView = () => {
@@ -85,7 +128,11 @@ function AppContent() {
             {language === 'th' ? 'EN' : 'TH'}
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div 
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+            onClick={() => setIsProfileModalOpen(true)}
+            title={t('profile.switcherTitle')}
+          >
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>{userProfile.name}</span>
               <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{userProfile.weight} {t('common.kg')}</span>
@@ -157,13 +204,17 @@ function AppContent() {
         </ul>
 
         {/* ข้อมูลโปรไฟล์ผู้ใช้ล่างสุด Sidebar */}
-        <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div 
+          style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+          onClick={() => setIsProfileModalOpen(true)}
+          title={t('profile.switcherTitle')}
+        >
           <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-cyan), var(--color-violet))', border: '1px solid var(--color-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 'bold', color: 'black' }}>
             {userProfile.name.charAt(0)}
           </div>
           <div style={{ overflow: 'hidden' }}>
             <div style={{ fontWeight: 'bold', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden', fontSize: '0.85rem' }}>{userProfile.name}</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Cal Goal: {userProfile.dailyCalories}</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{language === 'th' ? 'สลับโปรไฟล์ ➔' : 'Switch Profile ➔'}</div>
           </div>
         </div>
       </aside>
@@ -218,6 +269,199 @@ function AppContent() {
       <main className="cyber-main-wrapper" style={{ flexGrow: 1 }}>
         {renderView()}
       </main>
+
+      {/* Profile Switcher Modal */}
+      {isProfileModalOpen && (
+        <div className="cyber-modal-overlay">
+          <div className="cyber-modal-content glass-panel trim-cyan" style={{ maxWidth: '420px', width: '90%', background: 'rgba(10, 15, 26, 0.95)', border: '1px solid var(--color-cyan)' }}>
+            <h3 style={{ textTransform: 'uppercase', color: 'var(--color-cyan)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 20px 0', fontSize: '1rem', borderBottom: '1px solid rgba(0, 242, 254, 0.2)', paddingBottom: '10px' }}>
+              <span>👥 {t('profile.switcherTitle')}</span>
+              <button style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }} onClick={() => setIsProfileModalOpen(false)}>✕</button>
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto', marginBottom: '24px', paddingRight: '4px' }}>
+              {profiles.map(p => (
+                <div 
+                  key={p.id}
+                  className={`glass-panel`}
+                  style={{ 
+                    padding: '12px', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    cursor: 'pointer',
+                    background: p.id === activeProfileId ? 'rgba(255, 0, 128, 0.08)' : 'rgba(0,0,0,0.3)',
+                    border: `1px solid ${p.id === activeProfileId ? 'var(--color-magenta)' : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: '4px'
+                  }}
+                  onClick={() => {
+                    switchProfile(p.id);
+                    setIsProfileModalOpen(false);
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: p.id === activeProfileId ? 'linear-gradient(135deg, var(--color-magenta), var(--color-violet))' : 'linear-gradient(135deg, var(--color-cyan), var(--color-violet))', border: `1px solid ${p.id === activeProfileId ? 'var(--color-magenta)' : 'var(--color-cyan)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#000' }}>
+                      {p.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#fff' }}>
+                        {p.name} {p.id === activeProfileId && <span style={{ color: 'var(--color-magenta)', fontSize: '0.65rem', marginLeft: '6px', verticalAlign: 'middle' }}>● ACTIVE</span>}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        {p.weight} kg | {p.height} cm | {p.dailyCalories} kcal
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {profiles.length > 1 && (
+                    <button 
+                      className="cyber-btn"
+                      style={{ 
+                        padding: '4px 8px', 
+                        fontSize: '0.65rem', 
+                        background: 'rgba(255, 0, 128, 0.1)', 
+                        border: '1px solid var(--color-magenta)',
+                        color: 'var(--color-magenta)',
+                        height: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(t('profile.confirmDeleteProfile', { name: p.name }))) {
+                          deleteProfile(p.id);
+                        }
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                type="button"
+                className="cyber-btn" 
+                style={{ flex: 1, padding: '10px', fontSize: '0.8rem', border: '1px solid var(--color-cyan)', boxShadow: 'var(--shadow-cyan)' }}
+                onClick={() => {
+                  setIsCreateModalOpen(true);
+                  setIsProfileModalOpen(false);
+                }}
+              >
+                {t('profile.addProfileBtn')}
+              </button>
+              <button 
+                type="button"
+                className="cyber-btn" 
+                style={{ padding: '10px 16px', fontSize: '0.8rem', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)' }}
+                onClick={() => setIsProfileModalOpen(false)}
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Creator Modal */}
+      {isCreateModalOpen && (
+        <div className="cyber-modal-overlay">
+          <form onSubmit={handleCreateSubmit} className="cyber-modal-content glass-panel trim-cyan" style={{ maxWidth: '420px', width: '90%', background: 'rgba(10, 15, 26, 0.95)', border: '1px solid var(--color-cyan)' }}>
+            <h3 style={{ textTransform: 'uppercase', color: 'var(--color-cyan)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 20px 0', fontSize: '1rem', borderBottom: '1px solid rgba(0, 242, 254, 0.2)', paddingBottom: '10px' }}>
+              <span>👤 {t('profile.createProfileTitle')}</span>
+              <button type="button" style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }} onClick={() => setIsCreateModalOpen(false)}>✕</button>
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  {language === 'th' ? 'ชื่ออัตลักษณ์ผู้ใช้' : 'Identity Name'}
+                </label>
+                <input 
+                  type="text" 
+                  required
+                  value={newName} 
+                  onChange={e => setNewName(e.target.value)} 
+                  placeholder={language === 'th' ? 'เช่น นีโอ เรเซอร์' : 'e.g. Neo Racer'}
+                  style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', color: '#fff', padding: '10px', borderRadius: '4px', fontSize: '0.8rem' }}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    {language === 'th' ? 'น้ำหนัก (กก.)' : 'Weight (kg)'}
+                  </label>
+                  <input 
+                    type="number" 
+                    required
+                    min="1"
+                    max="300"
+                    value={newWeight} 
+                    onChange={e => setNewWeight(Number(e.target.value))} 
+                    style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', color: '#fff', padding: '10px', borderRadius: '4px', fontSize: '0.8rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    {language === 'th' ? 'ส่วนสูง (ซม.)' : 'Height (cm)'}
+                  </label>
+                  <input 
+                    type="number" 
+                    required
+                    min="1"
+                    max="250"
+                    value={newHeight} 
+                    onChange={e => setNewHeight(Number(e.target.value))} 
+                    style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', color: '#fff', padding: '10px', borderRadius: '4px', fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    {language === 'th' ? 'เป้าหมายแคลอรี่ (kcal)' : 'Calories Goal (kcal)'}
+                  </label>
+                  <input 
+                    type="number" 
+                    required
+                    min="500"
+                    max="10000"
+                    value={newCal} 
+                    onChange={e => setNewCal(Number(e.target.value))} 
+                    style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', color: '#fff', padding: '10px', borderRadius: '4px', fontSize: '0.8rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    {language === 'th' ? 'เป้าหมายน้ำดื่ม (แก้ว)' : 'Water Goal (glasses)'}
+                  </label>
+                  <input 
+                    type="number" 
+                    required
+                    min="1"
+                    max="50"
+                    value={newWater} 
+                    onChange={e => setNewWater(Number(e.target.value))} 
+                    style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', color: '#fff', padding: '10px', borderRadius: '4px', fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button type="submit" className="cyber-btn" style={{ flex: 1, padding: '10px', fontSize: '0.8rem', border: '1px solid var(--color-cyan)', boxShadow: 'var(--shadow-cyan)' }}>
+                {t('common.save')}
+              </button>
+              <button type="button" className="cyber-btn" style={{ padding: '10px 16px', fontSize: '0.8rem', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)' }} onClick={() => setIsCreateModalOpen(false)}>
+                {t('common.cancel')}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </>
   );
 }

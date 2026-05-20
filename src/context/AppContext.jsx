@@ -297,30 +297,110 @@ export const AppProvider = ({ children }) => {
     return localStorage.getItem('cp_coach_gemini_key') || '';
   });
 
-  // สเตทอื่นๆ ทั่วไปของระบบ
-  const [userProfile, setUserProfile] = useState(() => {
-    const local = localStorage.getItem('cp_coach_profile');
-    return local ? JSON.parse(local) : DEFAULT_PROFILE;
+  // 1. จัดการด้านสเตทโปรไฟล์ทั้งหมดและรองรับการย้ายข้อมูลเดิม (Migration)
+  const getInitialProfiles = () => {
+    const localProfiles = localStorage.getItem('cp_coach_profiles');
+    if (localProfiles) {
+      try {
+        return JSON.parse(localProfiles);
+      } catch (e) {
+        console.error("Profiles parse error:", e);
+      }
+    }
+
+    const localOldProfile = localStorage.getItem('cp_coach_profile');
+    if (localOldProfile) {
+      try {
+        const oldProfile = JSON.parse(localOldProfile);
+        return [{
+          ...oldProfile,
+          id: 'p_default'
+        }];
+      } catch (e) {
+        console.error("Old profile migration error:", e);
+      }
+    }
+
+    return [
+      {
+        id: 'p_default',
+        name: 'นีโอ เรเซอร์',
+        weight: 72,
+        height: 178,
+        activityLevel: 'Active (ออกกำลังกาย 3-5 วัน/สัปดาห์)',
+        dailyCalories: 2400,
+        dailyProtein: 144,
+        dailyCarbs: 270,
+        dailyFat: 80,
+        waterGoal: 10
+      }
+    ];
+  };
+
+  const [profiles, setProfiles] = useState(getInitialProfiles);
+  const [activeProfileId, setActiveProfileId] = useState(() => {
+    return localStorage.getItem('cp_coach_active_profile_id') || 'p_default';
   });
 
+  const activeProfile = profiles.find(p => p.id === activeProfileId) || profiles[0] || {
+    id: 'p_default',
+    name: 'นีโอ เรเซอร์',
+    weight: 72,
+    height: 178,
+    activityLevel: 'Active (ออกกำลังกาย 3-5 วัน/สัปดาห์)',
+    dailyCalories: 2400,
+    dailyProtein: 144,
+    dailyCarbs: 270,
+    dailyFat: 80,
+    waterGoal: 10
+  };
+
+  // แผนรองรับ Routines รายผู้ใช้
   const [routines, setRoutines] = useState(() => {
-    const local = localStorage.getItem('cp_coach_routines');
-    return local ? JSON.parse(local) : DEFAULT_ROUTINES;
+    const activeId = localStorage.getItem('cp_coach_active_profile_id') || 'p_default';
+    const local = localStorage.getItem(`cp_coach_routines_${activeId}`);
+    if (local) return JSON.parse(local);
+    if (activeId === 'p_default') {
+      const oldGlobal = localStorage.getItem('cp_coach_routines');
+      if (oldGlobal) return JSON.parse(oldGlobal);
+    }
+    return DEFAULT_ROUTINES;
   });
 
+  // แผนรองรับ History รายผู้ใช้
   const [history, setHistory] = useState(() => {
-    const local = localStorage.getItem('cp_coach_history');
-    return local ? JSON.parse(local) : DEFAULT_HISTORY;
+    const activeId = localStorage.getItem('cp_coach_active_profile_id') || 'p_default';
+    const local = localStorage.getItem(`cp_coach_history_${activeId}`);
+    if (local) return JSON.parse(local);
+    if (activeId === 'p_default') {
+      const oldGlobal = localStorage.getItem('cp_coach_history');
+      if (oldGlobal) return JSON.parse(oldGlobal);
+    }
+    return DEFAULT_HISTORY;
   });
 
+  // แผนรองรับ Nutrition รายผู้ใช้
   const [nutritionLog, setNutritionLog] = useState(() => {
-    const local = localStorage.getItem('cp_coach_nutrition');
-    return local ? JSON.parse(local) : DEFAULT_NUTRITION;
+    const activeId = localStorage.getItem('cp_coach_active_profile_id') || 'p_default';
+    const local = localStorage.getItem(`cp_coach_nutrition_${activeId}`);
+    if (local) return JSON.parse(local);
+    if (activeId === 'p_default') {
+      const oldGlobal = localStorage.getItem('cp_coach_nutrition');
+      if (oldGlobal) return JSON.parse(oldGlobal);
+    }
+    return DEFAULT_NUTRITION;
   });
 
+  // แผนรองรับ Exercises รายผู้ใช้
   const [exercises, setExercises] = useState(() => {
-    const local = localStorage.getItem('cp_coach_exercises');
-    return local ? JSON.parse(local) : DEFAULT_EXERCISES;
+    const activeId = localStorage.getItem('cp_coach_active_profile_id') || 'p_default';
+    const local = localStorage.getItem(`cp_coach_exercises_${activeId}`);
+    if (local) return JSON.parse(local);
+    if (activeId === 'p_default') {
+      const oldGlobal = localStorage.getItem('cp_coach_exercises');
+      if (oldGlobal) return JSON.parse(oldGlobal);
+    }
+    return DEFAULT_EXERCISES;
   });
 
   const [toast, setToast] = useState(null);
@@ -348,26 +428,55 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('cp_coach_language', language);
   }, [language]);
 
-  // ซิงก์ลง LocalStorage เมื่อมีการเปลี่ยนแปลงค่า
+  // คอยซิงก์ Profiles และ Active ID ลงใน LocalStorage
   useEffect(() => {
-    localStorage.setItem('cp_coach_profile', JSON.stringify(userProfile));
-  }, [userProfile]);
+    localStorage.setItem('cp_coach_profiles', JSON.stringify(profiles));
+  }, [profiles]);
 
   useEffect(() => {
-    localStorage.setItem('cp_coach_routines', JSON.stringify(routines));
-  }, [routines]);
+    localStorage.setItem('cp_coach_active_profile_id', activeProfileId);
+  }, [activeProfileId]);
+
+  // คอยซิงก์ข้อมูลรายอัตลักษณ์ลง LocalStorage เมื่อตัวแปรเปลี่ยน
+  useEffect(() => {
+    if (activeProfileId) {
+      localStorage.setItem(`cp_coach_routines_${activeProfileId}`, JSON.stringify(routines));
+    }
+  }, [routines, activeProfileId]);
 
   useEffect(() => {
-    localStorage.setItem('cp_coach_history', JSON.stringify(history));
-  }, [history]);
+    if (activeProfileId) {
+      localStorage.setItem(`cp_coach_history_${activeProfileId}`, JSON.stringify(history));
+    }
+  }, [history, activeProfileId]);
 
   useEffect(() => {
-    localStorage.setItem('cp_coach_nutrition', JSON.stringify(nutritionLog));
-  }, [nutritionLog]);
+    if (activeProfileId) {
+      localStorage.setItem(`cp_coach_nutrition_${activeProfileId}`, JSON.stringify(nutritionLog));
+    }
+  }, [nutritionLog, activeProfileId]);
 
   useEffect(() => {
-    localStorage.setItem('cp_coach_exercises', JSON.stringify(exercises));
-  }, [exercises]);
+    if (activeProfileId) {
+      localStorage.setItem(`cp_coach_exercises_${activeProfileId}`, JSON.stringify(exercises));
+    }
+  }, [exercises, activeProfileId]);
+
+  // คอยโหลดข้อมูลใหม่เมื่อกดสลับผู้ใช้ (Active ID เปลี่ยน)
+  useEffect(() => {
+    const suffix = activeProfileId;
+    const localRoutines = localStorage.getItem(`cp_coach_routines_${suffix}`);
+    setRoutines(localRoutines ? JSON.parse(localRoutines) : DEFAULT_ROUTINES);
+
+    const localHistory = localStorage.getItem(`cp_coach_history_${suffix}`);
+    setHistory(localHistory ? JSON.parse(localHistory) : DEFAULT_HISTORY);
+
+    const localNutrition = localStorage.getItem(`cp_coach_nutrition_${suffix}`);
+    setNutritionLog(localNutrition ? JSON.parse(localNutrition) : DEFAULT_NUTRITION);
+
+    const localExercises = localStorage.getItem(`cp_coach_exercises_${suffix}`);
+    setExercises(localExercises ? JSON.parse(localExercises) : DEFAULT_EXERCISES);
+  }, [activeProfileId]);
 
   // บันทึกและลบคีย์ Gemini API
   const saveGeminiApiKey = (key) => {
@@ -424,8 +533,58 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateProfile = (profileData) => {
-    setUserProfile(profileData);
+    setProfiles(prev => prev.map(p => p.id === activeProfileId ? { ...p, ...profileData } : p));
     showToast(t('profile.toastUpdated'), 'success');
+  };
+
+  const switchProfile = (profileId) => {
+    const targetProfile = profiles.find(p => p.id === profileId);
+    if (targetProfile) {
+      setActiveProfileId(profileId);
+      showToast(t('profile.switchSuccess', { name: targetProfile.name }), 'success');
+    }
+  };
+
+  const createProfile = (profileData) => {
+    const newId = 'p_' + Date.now();
+    const newProfile = {
+      id: newId,
+      name: profileData.name || 'User ' + (profiles.length + 1),
+      weight: Number(profileData.weight || 70),
+      height: Number(profileData.height || 170),
+      activityLevel: profileData.activityLevel || 'Active (ออกกำลังกาย 3-5 วัน/สัปดาห์)',
+      dailyCalories: Number(profileData.dailyCalories || 2000),
+      dailyProtein: Number(profileData.dailyProtein || 120),
+      dailyCarbs: Number(profileData.dailyCarbs || 230),
+      dailyFat: Number(profileData.dailyFat || 65),
+      waterGoal: Number(profileData.waterGoal || 8)
+    };
+
+    setProfiles(prev => [...prev, newProfile]);
+    setActiveProfileId(newId);
+    showToast(t('profile.createSuccess', { name: newProfile.name }), 'success');
+    return newId;
+  };
+
+  const deleteProfile = (profileId) => {
+    if (profiles.length <= 1) {
+      showToast(language === 'en' ? 'Cannot delete the only profile' : 'ไม่สามารถลบโปรไฟล์สุดท้ายที่เหลืออยู่ได้', 'error');
+      return;
+    }
+
+    // Clean up local storage data for this user ID
+    localStorage.removeItem(`cp_coach_routines_${profileId}`);
+    localStorage.removeItem(`cp_coach_history_${profileId}`);
+    localStorage.removeItem(`cp_coach_nutrition_${profileId}`);
+    localStorage.removeItem(`cp_coach_exercises_${profileId}`);
+
+    const remaining = profiles.filter(p => p.id !== profileId);
+    setProfiles(remaining);
+
+    if (activeProfileId === profileId) {
+      setActiveProfileId(remaining[0].id);
+    }
+    showToast(t('profile.deleteSuccess'), 'success');
   };
 
   const addRoutine = (routine) => {
@@ -487,15 +646,27 @@ export const AppProvider = ({ children }) => {
   };
 
   const exportData = () => {
-    const dataStr = JSON.stringify({
-      userProfile,
-      routines,
-      history,
-      nutritionLog,
-      exercises
-    }, null, 2);
+    const allData = {
+      profiles,
+      activeProfileId,
+      userData: profiles.reduce((acc, p) => {
+        const r = localStorage.getItem(`cp_coach_routines_${p.id}`);
+        const h = localStorage.getItem(`cp_coach_history_${p.id}`);
+        const n = localStorage.getItem(`cp_coach_nutrition_${p.id}`);
+        const e = localStorage.getItem(`cp_coach_exercises_${p.id}`);
+        acc[p.id] = {
+          routines: r ? JSON.parse(r) : [],
+          history: h ? JSON.parse(h) : [],
+          nutritionLog: n ? JSON.parse(n) : {},
+          exercises: e ? JSON.parse(e) : []
+        };
+        return acc;
+      }, {})
+    };
+
+    const dataStr = JSON.stringify(allData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = `cyber_coach_backup_${new Date().toISOString().split('T')[0]}.json`;
+    const exportFileDefaultName = `cyber_coach_profiles_backup_${new Date().toISOString().split('T')[0]}.json`;
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
@@ -506,11 +677,44 @@ export const AppProvider = ({ children }) => {
   const importData = (jsonData) => {
     try {
       const data = JSON.parse(jsonData);
-      if (data.userProfile) setUserProfile(data.userProfile);
-      if (data.routines) setRoutines(data.routines);
-      if (data.history) setHistory(data.history);
-      if (data.nutritionLog) setNutritionLog(data.nutritionLog);
-      if (data.exercises) setExercises(data.exercises);
+      if (data.profiles && data.userData) {
+        setProfiles(data.profiles);
+        setActiveProfileId(data.activeProfileId || data.profiles[0].id);
+
+        Object.keys(data.userData).forEach(pId => {
+          const uData = data.userData[pId];
+          if (uData.routines) localStorage.setItem(`cp_coach_routines_${pId}`, JSON.stringify(uData.routines));
+          if (uData.history) localStorage.setItem(`cp_coach_history_${pId}`, JSON.stringify(uData.history));
+          if (uData.nutritionLog) localStorage.setItem(`cp_coach_nutrition_${pId}`, JSON.stringify(uData.nutritionLog));
+          if (uData.exercises) localStorage.setItem(`cp_coach_exercises_${pId}`, JSON.stringify(uData.exercises));
+        });
+      } else {
+        // Legacy fallback
+        const newProfiles = [{
+          ...(data.userProfile || {
+            name: 'นีโอ เรเซอร์',
+            weight: 72,
+            height: 178,
+            activityLevel: 'Active (ออกกำลังกาย 3-5 วัน/สัปดาห์)',
+            dailyCalories: 2400,
+            dailyProtein: 144,
+            dailyCarbs: 270,
+            dailyFat: 80,
+            waterGoal: 10
+          }),
+          id: 'p_default'
+        }];
+        setProfiles(newProfiles);
+        setActiveProfileId('p_default');
+
+        if (data.routines) localStorage.setItem(`cp_coach_routines_p_default`, JSON.stringify(data.routines));
+        if (data.history) localStorage.setItem(`cp_coach_history_p_default`, JSON.stringify(data.history));
+        if (data.nutritionLog) localStorage.setItem(`cp_coach_nutrition_p_default`, JSON.stringify(data.nutritionLog));
+        if (data.exercises) localStorage.setItem(`cp_coach_exercises_p_default`, JSON.stringify(data.exercises));
+      }
+
+      // Force refresh active profile state reload
+      setActiveProfileId(prev => prev);
       showToast(t('profile.toastImported'), 'success');
       return true;
     } catch (e) {
@@ -520,11 +724,34 @@ export const AppProvider = ({ children }) => {
   };
 
   const resetData = () => {
-    setUserProfile(DEFAULT_PROFILE);
-    setRoutines(DEFAULT_ROUTINES);
-    setHistory(DEFAULT_HISTORY);
-    setNutritionLog(DEFAULT_NUTRITION);
-    setExercises(DEFAULT_EXERCISES);
+    profiles.forEach(p => {
+      localStorage.removeItem(`cp_coach_routines_${p.id}`);
+      localStorage.removeItem(`cp_coach_history_${p.id}`);
+      localStorage.removeItem(`cp_coach_nutrition_${p.id}`);
+      localStorage.removeItem(`cp_coach_exercises_${p.id}`);
+    });
+
+    localStorage.removeItem('cp_coach_profile');
+    localStorage.removeItem('cp_coach_routines');
+    localStorage.removeItem('cp_coach_history');
+    localStorage.removeItem('cp_coach_nutrition');
+    localStorage.removeItem('cp_coach_exercises');
+
+    const defaultProfile = {
+      id: 'p_default',
+      name: 'นีโอ เรเซอร์',
+      weight: 72,
+      height: 178,
+      activityLevel: 'Active (ออกกำลังกาย 3-5 วัน/สัปดาห์)',
+      dailyCalories: 2400,
+      dailyProtein: 144,
+      dailyCarbs: 270,
+      dailyFat: 80,
+      waterGoal: 10
+    };
+
+    setProfiles([defaultProfile]);
+    setActiveProfileId('p_default');
     showToast(t('profile.toastReset'), 'success');
   };
 
@@ -536,7 +763,12 @@ export const AppProvider = ({ children }) => {
       saveGeminiApiKey,
       clearGeminiApiKey,
       t,
-      userProfile,
+      userProfile: activeProfile,
+      profiles,
+      activeProfileId,
+      switchProfile,
+      createProfile,
+      deleteProfile,
       routines,
       history,
       nutritionLog,
