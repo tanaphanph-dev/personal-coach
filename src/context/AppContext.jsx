@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { getTranslation } from '../translations/locale';
+import { Preferences } from '@capacitor/preferences';
 
 export const AppContext = createContext();
 
@@ -11,6 +12,16 @@ const safeJsonParse = (str, fallback) => {
   } catch (e) {
     console.error("Failed to parse JSON from localStorage:", e);
     return fallback;
+  }
+};
+
+// Helper to save data to both localStorage and Capacitor Preferences
+const saveToStorage = async (key, value) => {
+  try {
+    localStorage.setItem(key, value);
+    await Preferences.set({ key, value });
+  } catch (e) {
+    console.warn("Capacitor Preferences write failed/skipped:", e);
   }
 };
 
@@ -484,42 +495,85 @@ export const AppProvider = ({ children }) => {
     }
   }, [toast]);
 
-  // เซฟการสลับภาษาลง LocalStorage
+  // โหลดข้อมูลทั้งหมดจาก Capacitor Preferences เมื่อเริ่มต้นแอปครั้งแรก (Restore from native Preferences)
   useEffect(() => {
-    localStorage.setItem('cp_coach_language', language);
+    const loadAllFromPreferences = async () => {
+      try {
+        const langVal = await Preferences.get({ key: 'cp_coach_language' });
+        if (langVal.value) setLanguage(langVal.value);
+
+        const geminiVal = await Preferences.get({ key: 'cp_coach_gemini_key' });
+        if (geminiVal.value) setGeminiApiKey(geminiVal.value);
+
+        const profilesVal = await Preferences.get({ key: 'cp_coach_profiles' });
+        let activeId = activeProfileId;
+        if (profilesVal.value) {
+          const parsedProfiles = safeJsonParse(profilesVal.value, null);
+          if (parsedProfiles) {
+            setProfiles(parsedProfiles);
+          }
+        }
+
+        const activeIdVal = await Preferences.get({ key: 'cp_coach_active_profile_id' });
+        if (activeIdVal.value) {
+          activeId = activeIdVal.value;
+          setActiveProfileId(activeId);
+        }
+
+        const routinesVal = await Preferences.get({ key: `cp_coach_routines_${activeId}` });
+        if (routinesVal.value) setRoutines(safeJsonParse(routinesVal.value, DEFAULT_ROUTINES));
+
+        const historyVal = await Preferences.get({ key: `cp_coach_history_${activeId}` });
+        if (historyVal.value) setHistory(safeJsonParse(historyVal.value, DEFAULT_HISTORY));
+
+        const nutritionVal = await Preferences.get({ key: `cp_coach_nutrition_${activeId}` });
+        if (nutritionVal.value) setNutritionLog(safeJsonParse(nutritionVal.value, DEFAULT_NUTRITION));
+
+        const exercisesVal = await Preferences.get({ key: `cp_coach_exercises_${activeId}` });
+        if (exercisesVal.value) setExercises(safeJsonParse(exercisesVal.value, DEFAULT_EXERCISES));
+      } catch (e) {
+        console.warn("Capacitor preferences init load skipped or failed:", e);
+      }
+    };
+    loadAllFromPreferences();
+  }, []);
+
+  // เซฟการสลับภาษาลง LocalStorage และ Preferences
+  useEffect(() => {
+    saveToStorage('cp_coach_language', language);
   }, [language]);
 
-  // คอยซิงก์ Profiles และ Active ID ลงใน LocalStorage
+  // คอยซิงก์ Profiles และ Active ID ลงใน LocalStorage และ Preferences
   useEffect(() => {
-    localStorage.setItem('cp_coach_profiles', JSON.stringify(profiles));
+    saveToStorage('cp_coach_profiles', JSON.stringify(profiles));
   }, [profiles]);
 
   useEffect(() => {
-    localStorage.setItem('cp_coach_active_profile_id', activeProfileId);
+    saveToStorage('cp_coach_active_profile_id', activeProfileId);
   }, [activeProfileId]);
 
-  // คอยซิงก์ข้อมูลรายอัตลักษณ์ลง LocalStorage เมื่อตัวแปรเปลี่ยน
+  // คอยซิงก์ข้อมูลรายอัตลักษณ์ลง LocalStorage และ Preferences เมื่อตัวแปรเปลี่ยน
   useEffect(() => {
     if (activeProfileId) {
-      localStorage.setItem(`cp_coach_routines_${activeProfileId}`, JSON.stringify(routines));
+      saveToStorage(`cp_coach_routines_${activeProfileId}`, JSON.stringify(routines));
     }
   }, [routines, activeProfileId]);
 
   useEffect(() => {
     if (activeProfileId) {
-      localStorage.setItem(`cp_coach_history_${activeProfileId}`, JSON.stringify(history));
+      saveToStorage(`cp_coach_history_${activeProfileId}`, JSON.stringify(history));
     }
   }, [history, activeProfileId]);
 
   useEffect(() => {
     if (activeProfileId) {
-      localStorage.setItem(`cp_coach_nutrition_${activeProfileId}`, JSON.stringify(nutritionLog));
+      saveToStorage(`cp_coach_nutrition_${activeProfileId}`, JSON.stringify(nutritionLog));
     }
   }, [nutritionLog, activeProfileId]);
 
   useEffect(() => {
     if (activeProfileId) {
-      localStorage.setItem(`cp_coach_exercises_${activeProfileId}`, JSON.stringify(exercises));
+      saveToStorage(`cp_coach_exercises_${activeProfileId}`, JSON.stringify(exercises));
     }
   }, [exercises, activeProfileId]);
 
@@ -542,13 +596,14 @@ export const AppProvider = ({ children }) => {
   // บันทึกและลบคีย์ Gemini API
   const saveGeminiApiKey = (key) => {
     setGeminiApiKey(key);
-    localStorage.setItem('cp_coach_gemini_key', key);
+    saveToStorage('cp_coach_gemini_key', key);
     showToast(t('profile.geminiKeySaved'), 'success');
   };
 
   const clearGeminiApiKey = () => {
     setGeminiApiKey('');
     localStorage.removeItem('cp_coach_gemini_key');
+    Preferences.remove({ key: 'cp_coach_gemini_key' }).catch(() => {});
     showToast(t('profile.geminiKeyCleared'), 'success');
   };
 
@@ -940,10 +995,10 @@ export const AppProvider = ({ children }) => {
 
         Object.keys(data.userData).forEach(pId => {
           const uData = data.userData[pId];
-          if (uData.routines) localStorage.setItem(`cp_coach_routines_${pId}`, JSON.stringify(uData.routines));
-          if (uData.history) localStorage.setItem(`cp_coach_history_${pId}`, JSON.stringify(uData.history));
-          if (uData.nutritionLog) localStorage.setItem(`cp_coach_nutrition_${pId}`, JSON.stringify(uData.nutritionLog));
-          if (uData.exercises) localStorage.setItem(`cp_coach_exercises_${pId}`, JSON.stringify(uData.exercises));
+          if (uData.routines) saveToStorage(`cp_coach_routines_${pId}`, JSON.stringify(uData.routines));
+          if (uData.history) saveToStorage(`cp_coach_history_${pId}`, JSON.stringify(uData.history));
+          if (uData.nutritionLog) saveToStorage(`cp_coach_nutrition_${pId}`, JSON.stringify(uData.nutritionLog));
+          if (uData.exercises) saveToStorage(`cp_coach_exercises_${pId}`, JSON.stringify(uData.exercises));
         });
       } else {
         // Legacy fallback
@@ -964,10 +1019,10 @@ export const AppProvider = ({ children }) => {
         setProfiles(newProfiles);
         setActiveProfileId('p_default');
 
-        if (data.routines) localStorage.setItem(`cp_coach_routines_p_default`, JSON.stringify(data.routines));
-        if (data.history) localStorage.setItem(`cp_coach_history_p_default`, JSON.stringify(data.history));
-        if (data.nutritionLog) localStorage.setItem(`cp_coach_nutrition_p_default`, JSON.stringify(data.nutritionLog));
-        if (data.exercises) localStorage.setItem(`cp_coach_exercises_p_default`, JSON.stringify(data.exercises));
+        if (data.routines) saveToStorage(`cp_coach_routines_p_default`, JSON.stringify(data.routines));
+        if (data.history) saveToStorage(`cp_coach_history_p_default`, JSON.stringify(data.history));
+        if (data.nutritionLog) saveToStorage(`cp_coach_nutrition_p_default`, JSON.stringify(data.nutritionLog));
+        if (data.exercises) saveToStorage(`cp_coach_exercises_p_default`, JSON.stringify(data.exercises));
       }
 
       // Force refresh active profile state reload
@@ -986,6 +1041,10 @@ export const AppProvider = ({ children }) => {
       localStorage.removeItem(`cp_coach_history_${p.id}`);
       localStorage.removeItem(`cp_coach_nutrition_${p.id}`);
       localStorage.removeItem(`cp_coach_exercises_${p.id}`);
+      Preferences.remove({ key: `cp_coach_routines_${p.id}` }).catch(() => {});
+      Preferences.remove({ key: `cp_coach_history_${p.id}` }).catch(() => {});
+      Preferences.remove({ key: `cp_coach_nutrition_${p.id}` }).catch(() => {});
+      Preferences.remove({ key: `cp_coach_exercises_${p.id}` }).catch(() => {});
     });
 
     localStorage.removeItem('cp_coach_profile');
@@ -993,6 +1052,12 @@ export const AppProvider = ({ children }) => {
     localStorage.removeItem('cp_coach_history');
     localStorage.removeItem('cp_coach_nutrition');
     localStorage.removeItem('cp_coach_exercises');
+
+    Preferences.remove({ key: 'cp_coach_profile' }).catch(() => {});
+    Preferences.remove({ key: 'cp_coach_routines' }).catch(() => {});
+    Preferences.remove({ key: 'cp_coach_history' }).catch(() => {});
+    Preferences.remove({ key: 'cp_coach_nutrition' }).catch(() => {});
+    Preferences.remove({ key: 'cp_coach_exercises' }).catch(() => {});
 
     const defaultProfile = {
       id: 'p_default',
