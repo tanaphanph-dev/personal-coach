@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 
 export default function DashboardView() {
-  const { history, nutritionLog, userProfile, getStreakCount, getTodayString } = useContext(AppContext);
+  const { history, nutritionLog, userProfile, getStreakCount, getTodayString, language, t } = useContext(AppContext);
   
   const streak = getStreakCount();
   const todayStr = getTodayString();
@@ -40,7 +40,7 @@ export default function DashboardView() {
     if (chartLogs.length === 0) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '120px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-          เพิ่มประวัติออกกำลังกายเพื่อแสดงกราฟประสิทธิภาพนีออน
+          {t('dashboard.volumeChartEmpty')}
         </div>
       );
     }
@@ -138,23 +138,23 @@ export default function DashboardView() {
   return (
     <div className="cyber-container">
       <h2 style={{ marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ color: 'var(--color-cyan)' }}>⚡</span> แดชบอร์ดสรุปผลประจำวัน
+        <span style={{ color: 'var(--color-cyan)' }}>⚡</span> {t('dashboard.title')}
       </h2>
 
       {/* แถวการ์ดสถิติ 3 ช่อง */}
       <div className="grid-3" style={{ marginBottom: '24px' }}>
         <div className="glass-panel trim-cyan stat-card">
-          <div className="stat-label">การฝึกต่อเนื่อง (Streak)</div>
+          <div className="stat-label">{t('dashboard.streak')}</div>
           <div className="stat-value" style={{ color: 'var(--color-cyan)', textShadow: 'var(--shadow-cyan)' }}>
-            {streak} <span className="stat-unit">วัน</span>
+            {streak} <span className="stat-unit">{t('dashboard.streakUnit')}</span>
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-            {streak > 0 ? 'รักษาวินัยการออกกำลังกายได้เยี่ยมยอด!' : 'เริ่มออกกำลังกายเลยเพื่อเก็บประวัติสตรีค'}
+            {streak > 0 ? t('dashboard.streakActive') : t('dashboard.streakEmpty')}
           </div>
         </div>
 
         <div className="glass-panel trim-magenta stat-card">
-          <div className="stat-label">วันนี้ได้รับแคลอรี</div>
+          <div className="stat-label">{t('dashboard.caloriesToday')}</div>
           <div className="stat-value" style={{ color: 'var(--color-magenta)', textShadow: 'var(--shadow-magenta)' }}>
             {todayTotals.calories} <span className="stat-unit">/ {userProfile.dailyCalories} kcal</span>
           </div>
@@ -164,12 +164,12 @@ export default function DashboardView() {
         </div>
 
         <div className="glass-panel trim-green stat-card">
-          <div className="stat-label">การออกกำลังกายที่บันทึกแล้ว</div>
+          <div className="stat-label">{t('dashboard.workoutLogged')}</div>
           <div className="stat-value" style={{ color: 'var(--color-green)', textShadow: 'var(--shadow-green)' }}>
-            {history.length} <span className="stat-unit">ครั้ง</span>
+            {history.length} <span className="stat-unit">{t('dashboard.workoutLoggedUnit')}</span>
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-            {history.length > 0 ? `เซสชันล่าสุด: ${history[0].routineName}` : 'กำลังรอเซสชันแรกของคุณ'}
+            {history.length > 0 ? `${t('dashboard.workoutLoggedLast')} ${history[0].routineName}` : t('dashboard.workoutLoggedEmpty')}
           </div>
         </div>
       </div>
@@ -178,18 +178,18 @@ export default function DashboardView() {
         {/* หน้าจอโภชนาการประจำวัน */}
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <h3 style={{ fontSize: '1rem', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-            🎯 การกระจายสารอาหารและเป้าหมายวันนี้
+            🎯 {t('dashboard.macroGoal')}
           </h3>
           <div className="macro-container">
-            {renderMacroRing(proteinPercent, 'var(--color-cyan)', 'โปรตีน', todayTotals.protein, 'g', userProfile.dailyProtein)}
-            {renderMacroRing(carbsPercent, 'var(--color-yellow)', 'คาร์โบไฮเดรต', todayTotals.carbs, 'g', userProfile.dailyCarbs)}
-            {renderMacroRing(fatPercent, 'var(--color-magenta)', 'ไขมัน', todayTotals.fat, 'g', userProfile.dailyFat)}
+            {renderMacroRing(proteinPercent, 'var(--color-cyan)', t('dashboard.protein'), todayTotals.protein, 'g', userProfile.dailyProtein)}
+            {renderMacroRing(carbsPercent, 'var(--color-yellow)', t('dashboard.carbs'), todayTotals.carbs, 'g', userProfile.dailyCarbs)}
+            {renderMacroRing(fatPercent, 'var(--color-magenta)', t('dashboard.fat'), todayTotals.fat, 'g', userProfile.dailyFat)}
           </div>
           <div className="glass-panel" style={{ background: 'rgba(0,0,0,0.15)', padding: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', width: '100%' }}>
-              <div className="stat-label" style={{ flexGrow: 1 }}>การดื่มน้ำดื่มวันนี้</div>
+              <div className="stat-label" style={{ flexGrow: 1 }}>{t('dashboard.waterGoal')}</div>
               <div style={{ fontFamily: 'var(--font-display)', color: 'var(--color-cyan)', fontWeight: 'bold' }}>
-                {todayNutrition.water} / {userProfile.waterGoal} แก้ว
+                {todayNutrition.water} / {userProfile.waterGoal} {t('dashboard.waterUnit')}
               </div>
             </div>
             <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
@@ -201,13 +201,13 @@ export default function DashboardView() {
         {/* กราฟประสิทธิภาพนีออน */}
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <h3 style={{ fontSize: '1rem', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-            📈 แนวโน้มปริมาณการซ้อมรวม (Volume 5 ครั้งล่าสุด)
+            📈 {t('dashboard.volumeChart')}
           </h3>
           <div style={{ position: 'relative', height: '100%', minHeight: '120px' }}>
             {renderSVGChart()}
           </div>
           <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '6px' }}>
-            *ปริมาณการซ้อมรวมคำนวณจาก (เซต x จำนวนครั้ง x น้ำหนักที่ยก) ในแต่ละท่ารวมกัน
+            {t('dashboard.volumeChartSub')}
           </p>
         </div>
       </div>
@@ -215,28 +215,31 @@ export default function DashboardView() {
       {/* รายการประวัติล่าช้าล่าสุด */}
       <div className="glass-panel" style={{ marginTop: '20px' }}>
         <h3 style={{ fontSize: '1rem', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px', marginBottom: '16px' }}>
-          🗓️ ประวัติเซสชันการฝึก 3 ครั้งล่าสุด
+          🗓️ {t('dashboard.recentHistory')}
         </h3>
         
         {history.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-secondary)' }}>
-            ยังไม่เคยมีบันทึกประวัติการออกกำลังกาย
+            {t('dashboard.historyEmpty')}
           </div>
         ) : (
           <div className="history-list">
             {[...history].slice(0, 3).map((item, idx) => {
               const minutes = Math.floor(item.durationSeconds / 60);
               const dateObj = new Date(item.date);
-              const thaiDate = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+              
+              const formattedDate = language === 'th'
+                ? dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
+                : dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: '2-digit' });
               
               return (
                 <div key={item.id || idx} className="history-item">
                   <div className="history-header">
                     <span style={{ color: 'var(--color-cyan)' }}>{item.routineName}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{thaiDate} ({minutes} นาที)</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formattedDate} ({minutes} {language === 'th' ? 'นาที' : 'mins'})</span>
                   </div>
                   <div className="history-details">
-                    <span style={{ fontWeight: 'bold', color: '#fff' }}>ปริมาณแรงซ้อมรวม: {item.totalVolume} kg</span> | ท่าฝึก: {item.exercises.map(ex => `${ex.name} (${ex.sets.length} เซต)`).join(', ')}
+                    <span style={{ fontWeight: 'bold', color: '#fff' }}>{t('dashboard.historyDetail')}: {item.totalVolume} kg</span> | {t('dashboard.historyExercises')}: {item.exercises.map(ex => `${ex.name} (${ex.sets.length} ${t('common.sets')})`).join(', ')}
                   </div>
                 </div>
               );

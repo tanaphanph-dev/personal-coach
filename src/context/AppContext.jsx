@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { getTranslation } from '../translations/locale';
 
 export const AppContext = createContext();
 
@@ -71,7 +72,7 @@ const DEFAULT_EXERCISES = [
     id: 'ex6',
     name: 'Plank (แพลงก์)',
     category: 'Core (แกนกลาง)',
-    description: 'นอนคว่ำชันศอก เกร็งตัวให้ตรงขนานกับพื้น เพื่อฝึกความทนทานของแกนกลางลำตัวทั้งหมด',
+    description: 'นอนคว่ำชันศอก เเกร็งตัวให้ตรงขนานกับพื้น เพื่อฝึกความทนทานของแกนกลางลำตัวทั้งหมด',
     difficulty: 'ง่าย',
     instructions: [
       'วางข้อศอกลงบนพื้นใต้หัวไหล่ ยืดขาทั้งสองข้างไปด้านหลัง ตั้งปลายเท้า',
@@ -281,11 +282,22 @@ const DEFAULT_PROFILE = {
   dailyProtein: 144, // 2g ต่อ นน. ตัว
   dailyCarbs: 270,
   dailyFat: 80,
-  waterGoal: 10 // 10 แก้ว (ประมาณ 2.5-3 ลิตร)
+  waterGoal: 10 // 10 แก้ว
 };
 
 export const AppProvider = ({ children }) => {
-  // พยายามดึงข้อมูลจาก LocalStorage ถ้าไม่มีให้ใช้ Default
+  // 1. จัดการด้านสเตทสลับภาษา (TH/EN)
+  const [language, setLanguage] = useState(() => {
+    const local = localStorage.getItem('cp_coach_language');
+    return local === 'en' ? 'en' : 'th';
+  });
+
+  // 2. จัดการด้านคีย์ Gemini API
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    return localStorage.getItem('cp_coach_gemini_key') || '';
+  });
+
+  // สเตทอื่นๆ ทั่วไปของระบบ
   const [userProfile, setUserProfile] = useState(() => {
     const local = localStorage.getItem('cp_coach_profile');
     return local ? JSON.parse(local) : DEFAULT_PROFILE;
@@ -311,11 +323,15 @@ export const AppProvider = ({ children }) => {
     return local ? JSON.parse(local) : DEFAULT_EXERCISES;
   });
 
-  // ใช้ state แจ้งเตือน Toast ทั่วไปในแอป
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
+  };
+
+  // ฟังก์ชันช่วยเหลือสำหรับแปลภาษา (Translation helper)
+  const t = (path, replacements = {}) => {
+    return getTranslation(language, path, replacements);
   };
 
   useEffect(() => {
@@ -326,6 +342,11 @@ export const AppProvider = ({ children }) => {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  // เซฟการสลับภาษาลง LocalStorage
+  useEffect(() => {
+    localStorage.setItem('cp_coach_language', language);
+  }, [language]);
 
   // ซิงก์ลง LocalStorage เมื่อมีการเปลี่ยนแปลงค่า
   useEffect(() => {
@@ -348,19 +369,28 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('cp_coach_exercises', JSON.stringify(exercises));
   }, [exercises]);
 
+  // บันทึกและลบคีย์ Gemini API
+  const saveGeminiApiKey = (key) => {
+    setGeminiApiKey(key);
+    localStorage.setItem('cp_coach_gemini_key', key);
+    showToast(t('profile.geminiKeySaved'), 'success');
+  };
+
+  const clearGeminiApiKey = () => {
+    setGeminiApiKey('');
+    localStorage.removeItem('cp_coach_gemini_key');
+    showToast(t('profile.geminiKeyCleared'), 'success');
+  };
+
   // ฟังก์ชันคำนวณวันฝึกต่อเนื่อง (Streak)
   const getStreakCount = () => {
     if (history.length === 0) return 0;
-    
-    // ดึงวันที่มีการฝึกที่ไม่ซ้ำกัน
     const uniqueDates = [...new Set(history.map(item => item.date))].sort().reverse();
-    
     const todayStr = new Date().toISOString().split('T')[0];
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    // ถ้าไม่มีประวัติวันนี้และเมื่อวานเลย ถือว่าสตรีคขาดแล้ว
     if (uniqueDates[0] !== todayStr && uniqueDates[0] !== yesterdayStr) {
       return 0;
     }
@@ -368,14 +398,12 @@ export const AppProvider = ({ children }) => {
     let streak = 0;
     let checkDate = new Date();
 
-    // ดำเนินการเช็กย้อนกลับทีละวัน
     for (let i = 0; i < 30; i++) {
       const checkStr = checkDate.toISOString().split('T')[0];
       if (uniqueDates.includes(checkStr)) {
         streak++;
         checkDate.setDate(checkDate.getDate() - 1);
       } else {
-        // อนุญาตให้ข้ามได้ถ้าเป็นวันปัจจุบันแล้วยังไม่ได้ออกกำลังกาย แต่เมื่อวานออก
         if (i === 0 && checkStr === todayStr) {
           checkDate.setDate(checkDate.getDate() - 1);
           continue;
@@ -386,40 +414,35 @@ export const AppProvider = ({ children }) => {
     return streak;
   };
 
-  // ดึงวันในรูปแบบ String
   const getTodayString = () => {
     return new Date().toISOString().split('T')[0];
   };
 
-  // ดำเนินการปรับปรุงข้อมูลประวัติออกกำลังกาย
   const addWorkoutLog = (log) => {
     setHistory(prev => [log, ...prev]);
-    showToast('เก่งมาก! บันทึกเซสชันการออกกำลังกายของคุณลงระบบแล้ว', 'success');
+    showToast(t('workout.toastSaved'), 'success');
   };
 
-  // ดำเนินการปรับปรุงข้อมูลโปรไฟล์
   const updateProfile = (profileData) => {
     setUserProfile(profileData);
-    showToast('ปรับปรุงโปรไฟล์ผู้ใช้งานและเป้าหมายแล้ว', 'success');
+    showToast(t('profile.toastUpdated'), 'success');
   };
 
-  // การจัดการโปรแกรมออกกำลังกาย (Routines)
   const addRoutine = (routine) => {
     setRoutines(prev => [...prev, routine]);
-    showToast(`เพิ่มโปรแกรมฝึก "${routine.name}" สำเร็จ`, 'success');
+    showToast(t('workout.toastAdded', { name: routine.name }), 'success');
   };
 
   const editRoutine = (id, updatedRoutine) => {
     setRoutines(prev => prev.map(r => r.id === id ? { ...r, ...updatedRoutine } : r));
-    showToast('แก้ไขโปรแกรมการออกกำลังกายแล้ว', 'success');
+    showToast(t('workout.toastEdited'), 'success');
   };
 
   const deleteRoutine = (id) => {
     setRoutines(prev => prev.filter(r => r.id !== id));
-    showToast('ลบโปรแกรมการออกกำลังกายแล้ว', 'success');
+    showToast(t('workout.toastDeleted'), 'success');
   };
 
-  // การจัดการด้านโภชนาการ
   const addFoodLog = (date, food) => {
     setNutritionLog(prev => {
       const dayData = prev[date] || { water: 0, foods: [] };
@@ -431,7 +454,7 @@ export const AppProvider = ({ children }) => {
         }
       };
     });
-    showToast(`เพิ่มเมนู "${food.name}" แล้ว`, 'success');
+    showToast(t('nutrition.toastAdded', { name: food.name }), 'success');
   };
 
   const removeFoodLog = (date, id) => {
@@ -446,7 +469,7 @@ export const AppProvider = ({ children }) => {
         }
       };
     });
-    showToast('ลบเมนูอาหารสำเร็จ', 'success');
+    showToast(t('nutrition.toastDeleted'), 'success');
   };
 
   const addWater = (date, amount) => {
@@ -463,7 +486,6 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  // การสำรองและการจัดการระบบข้อมูล
   const exportData = () => {
     const dataStr = JSON.stringify({
       userProfile,
@@ -473,14 +495,12 @@ export const AppProvider = ({ children }) => {
       exercises
     }, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
     const exportFileDefaultName = `cyber_coach_backup_${new Date().toISOString().split('T')[0]}.json`;
-    
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
-    showToast('ส่งออกไฟล์ข้อมูลสำรองสำเร็จ', 'success');
+    showToast(t('profile.toastExported'), 'success');
   };
 
   const importData = (jsonData) => {
@@ -491,10 +511,10 @@ export const AppProvider = ({ children }) => {
       if (data.history) setHistory(data.history);
       if (data.nutritionLog) setNutritionLog(data.nutritionLog);
       if (data.exercises) setExercises(data.exercises);
-      showToast('นำเข้าข้อมูลสำเร็จ ยินดีต้อนรับกลับ!', 'success');
+      showToast(t('profile.toastImported'), 'success');
       return true;
     } catch (e) {
-      showToast('การนำเข้าข้อมูลล้มเหลว ไฟล์อาจไม่ถูกต้อง', 'error');
+      showToast(t('profile.toastImportFailed'), 'error');
       return false;
     }
   };
@@ -505,11 +525,17 @@ export const AppProvider = ({ children }) => {
     setHistory(DEFAULT_HISTORY);
     setNutritionLog(DEFAULT_NUTRITION);
     setExercises(DEFAULT_EXERCISES);
-    showToast('รีเซ็ตข้อมูลระบบกลับสู่ค่าเริ่มต้นแล้ว', 'success');
+    showToast(t('profile.toastReset'), 'success');
   };
 
   return (
     <AppContext.Provider value={{
+      language,
+      setLanguage,
+      geminiApiKey,
+      saveGeminiApiKey,
+      clearGeminiApiKey,
+      t,
       userProfile,
       routines,
       history,

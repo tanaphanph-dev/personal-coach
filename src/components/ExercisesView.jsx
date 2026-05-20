@@ -2,47 +2,61 @@ import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 
 export default function ExercisesView() {
-  const { exercises } = useContext(AppContext);
+  const { exercises, t, language } = useContext(AppContext);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
+  const [selectedCategory, setSelectedCategory] = useState(language === 'th' ? 'ทั้งหมด' : 'All');
   const [activeDetailsExercise, setActiveDetailsExercise] = useState(null); // ตัวที่กำลังดูรายละเอียดอยู่
 
-  // หมวดหมู่กล้ามเนื้อสำหรับแสดงตัวกรอง
-  const categories = ['ทั้งหมด', 'Chest (อก)', 'Back (หลัง)', 'Legs (ขา)', 'Shoulders (ไหล่)', 'Arms (แขน)', 'Core (แกนกลาง)'];
+  // หมวดหมู่กล้ามเนื้อสำหรับแสดงตัวกรองดรอปดาวน์
+  const categories = language === 'th'
+    ? ['ทั้งหมด', 'Chest (อก)', 'Back (หลัง)', 'Legs (ขา)', 'Shoulders (ไหล่)', 'Arms (แขน)', 'Core (แกนกลาง)']
+    : ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
 
   // กรองรายชื่อท่าออกกำลังกายตามประเภทและการค้นหา
   const filteredExercises = exercises.filter(ex => {
     const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           ex.description.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesCategory = selectedCategory === 'ทั้งหมด' || ex.category.includes(selectedCategory.split(' ')[0]);
+    // จับคู่ประเภทได้สองภาษา
+    let matchesCategory = false;
+    if (selectedCategory === 'ทั้งหมด' || selectedCategory === 'All') {
+      matchesCategory = true;
+    } else {
+      const cleanCat = selectedCategory.split(' ')[0]; // ดึง 'Chest', 'Back' ฯลฯ
+      matchesCategory = ex.category.toLowerCase().includes(cleanCat.toLowerCase());
+    }
 
     return matchesSearch && matchesCategory;
   });
 
   const getDifficultyBadgeClass = (diff) => {
-    switch (diff) {
-      case 'ง่าย': return 'badge-green';
-      case 'ปานกลาง': return 'badge-cyan';
-      case 'ยาก': return 'badge-magenta';
-      default: return 'badge-muted';
-    }
+    if (diff === 'ง่าย' || diff === 'Easy') return 'badge-green';
+    if (diff === 'ปานกลาง' || diff === 'Intermediate' || diff === 'Medium') return 'badge-cyan';
+    if (diff === 'ยาก' || diff === 'Advanced' || diff === 'Hard') return 'badge-magenta';
+    return 'badge-muted';
+  };
+
+  const getDifficultyText = (diff) => {
+    if (diff === 'ง่าย' || diff === 'Easy') return t('exercises.difficultyEasy');
+    if (diff === 'ปานกลาง' || diff === 'Intermediate' || diff === 'Medium') return t('exercises.difficultyMed');
+    if (diff === 'ยาก' || diff === 'Advanced' || diff === 'Hard') return t('exercises.difficultyHard');
+    return diff;
   };
 
   return (
     <div className="cyber-container">
       <h2 style={{ marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ color: 'var(--color-cyan)' }}>📖</span> คลังท่าออกกำลังกายอ้างอิง
+        <span style={{ color: 'var(--color-cyan)' }}>📖</span> {t('exercises.title')}
       </h2>
 
       {/* แผงค้นหาและจัดระเบียบ */}
       <div className="glass-panel" style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div className="cyber-input-group" style={{ marginBottom: 0 }}>
-          <label className="cyber-label">พิมพ์คำค้นหาท่าออกกำลังกาย</label>
+          <label className="cyber-label">{t('exercises.searchLabel')}</label>
           <input 
             type="text" 
             className="cyber-input" 
-            placeholder="ค้นหาชื่อท่า, รายละเอียดการยก (เช่น Bench Press, หมอบ, สควอท)..." 
+            placeholder={t('exercises.searchPlace')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -50,7 +64,7 @@ export default function ExercisesView() {
 
         {/* เมนูตัวกรองกล้ามเนื้อ */}
         <div>
-          <label className="cyber-label" style={{ marginBottom: '8px', display: 'block' }}>คัดกรองตามกลุ่มกล้ามเนื้อ</label>
+          <label className="cyber-label" style={{ marginBottom: '8px', display: 'block' }}>{t('exercises.filterLabel')}</label>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {categories.map(cat => (
               <button 
@@ -69,7 +83,7 @@ export default function ExercisesView() {
       {/* รายการแสดงท่าฝึกหลังการกรอง */}
       {filteredExercises.length === 0 ? (
         <div className="glass-panel" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)' }}>
-          ไม่พบข้อมูลท่าออกกำลังกายที่ตรงกับการค้นหาของคุณ
+          {t('exercises.empty')}
         </div>
       ) : (
         <div className="exercise-list">
@@ -84,12 +98,14 @@ export default function ExercisesView() {
                   <div className="exercise-name">{ex.name}</div>
                   <div className="exercise-meta">
                     <span className="badge badge-cyan">{ex.category}</span>
-                    <span className={`badge ${getDifficultyBadgeClass(ex.difficulty)}`}>ระดับ: {ex.difficulty}</span>
+                    <span className={`badge ${getDifficultyBadgeClass(ex.difficulty)}`}>
+                      {t('exercises.difficulty')} {getDifficultyText(ex.difficulty)}
+                    </span>
                   </div>
                 </div>
                 <div>
                   <span style={{ color: 'var(--color-cyan)', fontSize: '0.8rem', fontFamily: 'var(--font-display)' }}>
-                    คลิกเพื่อเปิดดูคู่มือ ➔
+                    {t('exercises.guideLink')}
                   </span>
                 </div>
               </div>
@@ -110,13 +126,13 @@ export default function ExercisesView() {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
               <span className="badge badge-cyan" style={{ fontSize: '0.75rem' }}>{activeDetailsExercise.category}</span>
               <span className={`badge ${getDifficultyBadgeClass(activeDetailsExercise.difficulty)}`} style={{ fontSize: '0.75rem' }}>
-                ความยาก: {activeDetailsExercise.difficulty}
+                {t('exercises.difficulty')} {getDifficultyText(activeDetailsExercise.difficulty)}
               </span>
             </div>
 
             <div style={{ marginBottom: '20px' }}>
               <h4 style={{ fontSize: '0.85rem', color: 'var(--color-cyan)', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>
-                คำอธิบายและเป้าหมาย
+                {t('exercises.modalDescHeader')}
               </h4>
               <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                 {activeDetailsExercise.description}
@@ -125,7 +141,7 @@ export default function ExercisesView() {
 
             <div>
               <h4 style={{ fontSize: '0.85rem', color: 'var(--color-magenta)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
-                ขั้นตอนการปฏิบัติอย่างถูกต้อง
+                {t('exercises.modalInstructionsHeader')}
               </h4>
               <ol style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
                 {activeDetailsExercise.instructions.map((step, idx) => (
@@ -138,7 +154,7 @@ export default function ExercisesView() {
 
             <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'end' }}>
               <button className="cyber-btn cyber-btn-secondary" onClick={() => setActiveDetailsExercise(null)}>
-                ปิดคู่มือ
+                {t('exercises.modalCloseBtn')}
               </button>
             </div>
           </div>

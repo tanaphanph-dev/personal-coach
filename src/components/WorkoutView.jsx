@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 
 export default function WorkoutView() {
-  const { routines, exercises, addWorkoutLog, addRoutine, deleteRoutine, getTodayString } = useContext(AppContext);
+  const { routines, exercises, addWorkoutLog, addRoutine, deleteRoutine, getTodayString, t, language } = useContext(AppContext);
 
   // States สำหรับสลับโหมด
   const [activeWorkout, setActiveWorkout] = useState(null); // โปรแกรมที่กำลังฝึกอยู่
@@ -55,7 +55,7 @@ export default function WorkoutView() {
     
     // ตั้งต้นโครงสร้างข้อมูลชุดการออกกำลังกายเปล่าๆ เพื่อให้ผู้ใช้ติ๊กบันทึก
     const initialExercises = routine.exercises.map(item => {
-      const exerciseDetails = exercises.find(ex => ex.id === item.id) || { name: 'ท่าออกกำลังกายลึกลับ' };
+      const exerciseDetails = exercises.find(ex => ex.id === item.id) || { name: 'Exercise' };
       
       const sets = [];
       for (let i = 0; i < item.sets; i++) {
@@ -127,7 +127,7 @@ export default function WorkoutView() {
     });
 
     if (completedExercises.length === 0) {
-      alert('กรุณาติ๊กสำเร็จ (ปุ่มสีเขียว) อย่างน้อย 1 เซตเพื่อทำการบันทึกข้อมูลครับ');
+      alert(t('workout.alertDoneSet'));
       return;
     }
 
@@ -157,7 +157,7 @@ export default function WorkoutView() {
 
   // ยกเลิกเซสชัน
   const cancelWorkout = () => {
-    if (window.confirm('คุณต้องการยกเลิกเซสชันออกกำลังกายนี้ใช่หรือไม่? ข้อมูลประจุนี้จะหายไป')) {
+    if (window.confirm(t('workout.confirmCancel'))) {
       setIsTimerRunning(false);
       setActiveWorkout(null);
       setWorkoutState(null);
@@ -186,11 +186,11 @@ export default function WorkoutView() {
   const saveNewRoutine = (e) => {
     e.preventDefault();
     if (!newRoutineName.trim()) {
-      alert('กรุณากรอกชื่อโปรแกรมการออกกำลังกาย');
+      alert(t('workout.alertName'));
       return;
     }
     if (selectedBuilderExercises.length === 0) {
-      alert('กรุณาเลือกท่าออกกำลังกายอย่างน้อย 1 ท่า');
+      alert(t('workout.alertEx'));
       return;
     }
 
@@ -214,17 +214,23 @@ export default function WorkoutView() {
       {showCongrats && lastWorkoutSummary && (
         <div className="congrats-overlay">
           <div className="congrats-box">
-            <div className="congrats-title">⚡ SESSION COMPLETED ⚡</div>
-            <div className="congrats-sub">บันทึกข้อมูลเข้าระบบความแกร่งแล้ว!</div>
+            <div className="congrats-title">{t('workout.congratsTitle')}</div>
+            <div className="congrats-sub">{t('workout.congratsSub')}</div>
             
             <div className="glass-panel" style={{ background: 'rgba(0,0,0,0.3)', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>โปรแกรม: <span style={{ color: '#fff', fontWeight: 'bold' }}>{lastWorkoutSummary.routineName}</span></div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>เวลาฝึกซ้อมจริง: <span style={{ color: 'var(--color-cyan)', fontWeight: 'bold' }}>{lastWorkoutSummary.duration} นาที</span></div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>ปริมาณงานซ้อมรวม: <span style={{ color: 'var(--color-green)', fontWeight: 'bold' }}>{lastWorkoutSummary.volume} kg</span></div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                {language === 'th' ? 'โปรแกรม:' : 'Routine:'} <span style={{ color: '#fff', fontWeight: 'bold' }}>{lastWorkoutSummary.routineName}</span>
+              </div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                {t('workout.congratsDuration')} <span style={{ color: 'var(--color-cyan)', fontWeight: 'bold' }}>{lastWorkoutSummary.duration} {language === 'th' ? 'นาที' : 'mins'}</span>
+              </div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                {t('workout.congratsVolume')} <span style={{ color: 'var(--color-green)', fontWeight: 'bold' }}>{lastWorkoutSummary.volume} kg</span>
+              </div>
             </div>
 
             <button className="cyber-btn cyber-btn-success" onClick={() => setShowCongrats(false)}>
-              ปิดหน้าต่าง & ไปแดชบอร์ด
+              {t('workout.congratsCloseBtn')}
             </button>
           </div>
         </div>
@@ -235,12 +241,12 @@ export default function WorkoutView() {
         <div className="glass-panel trim-cyan" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'between', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '14px' }}>
             <div>
-              <h2 style={{ color: 'var(--color-cyan)', fontSize: '1.25rem' }}>💪 กำลังออกกำลังกาย: {activeWorkout.name}</h2>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>กรอกน้ำหนักและครั้ง จากนั้นกดปุ่มสีเขียวเมื่อยกครบเซต</p>
+              <h2 style={{ color: 'var(--color-cyan)', fontSize: '1.25rem' }}>{t('workout.activeTitle')} {activeWorkout.name}</h2>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('workout.activeSub')}</p>
             </div>
             
             <div className="timer-box" style={{ minWidth: '150px', padding: '10px' }}>
-              <span className="stat-label" style={{ fontSize: '0.6rem' }}>เวลาฝึกสด</span>
+              <span className="stat-label" style={{ fontSize: '0.6rem' }}>{t('workout.activeTimer')}</span>
               <span className="timer-digits" style={{ fontSize: '1.8rem' }}>{formatTime(workoutTimer)}</span>
             </div>
           </div>
@@ -254,10 +260,10 @@ export default function WorkoutView() {
 
                 {/* ส่วนหัวตารางสำหรับแสดงบนจอคอมและปรับปรุงให้อ่านง่าย */}
                 <div className="set-row" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 'bold', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  <div className="set-number">เซต</div>
-                  <div style={{ textTransform: 'uppercase', textAlign: 'center' }}>น้ำหนัก (kg)</div>
-                  <div style={{ textTransform: 'uppercase', textAlign: 'center' }}>ครั้ง (Reps)</div>
-                  <div style={{ textTransform: 'uppercase', textAlign: 'center' }}>เสร็จ</div>
+                  <div className="set-number">{t('workout.activeSetHeader')}</div>
+                  <div style={{ textTransform: 'uppercase', textAlign: 'center' }}>{t('workout.activeWeightHeader')}</div>
+                  <div style={{ textTransform: 'uppercase', textAlign: 'center' }}>{t('workout.activeRepsHeader')}</div>
+                  <div style={{ textTransform: 'uppercase', textAlign: 'center' }}>{t('workout.activeDoneHeader')}</div>
                 </div>
 
                 {ex.sets.map((set, setIdx) => (
@@ -297,10 +303,10 @@ export default function WorkoutView() {
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'end', marginTop: '20px' }}>
             <button className="cyber-btn cyber-btn-secondary" onClick={cancelWorkout}>
-              ยกเลิกการฝึก
+              {t('workout.activeCancelBtn')}
             </button>
             <button className="cyber-btn cyber-btn-success" onClick={finishWorkout}>
-              เสร็จสิ้นการฝึก
+              {t('workout.activeFinishBtn')}
             </button>
           </div>
         </div>
@@ -309,16 +315,16 @@ export default function WorkoutView() {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
             <h2 style={{ textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: 'var(--color-cyan)' }}>💪</span> โปรแกรมการฝึกซ้อมของคุณ
+              <span style={{ color: 'var(--color-cyan)' }}>💪</span> {t('workout.title')}
             </h2>
             <button className="cyber-btn cyber-btn-sm" onClick={() => setShowCreateModal(true)}>
-              + สร้างโปรแกรม
+              {t('workout.createBtn')}
             </button>
           </div>
 
           {routines.length === 0 ? (
             <div className="glass-panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-              ยังไม่มีโปรแกรมการฝึกซ้อมของคุณในระบบ กดปุ่ม "+ สร้างโปรแกรม" ด้านบนเพื่อเริ่มกำหนดตารางฝึกซ้อม
+              {t('workout.emptyRoutines')}
             </div>
           ) : (
             <div className="grid-2">
@@ -328,16 +334,18 @@ export default function WorkoutView() {
                     <div>
                       <h3 style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '8px' }}>{routine.name}</h3>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                        ประกอบด้วย {routine.exercises.length} ท่าออกกำลังกาย
+                        {t('workout.exercisesCount', { count: routine.exercises.length })}
                       </p>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {routine.exercises.map((item, idx) => {
-                          const exInfo = exercises.find(e => e.id === item.id) || { name: 'ท่าออกกำลังกาย' };
+                          const exInfo = exercises.find(e => e.id === item.id) || { name: 'Exercise' };
                           return (
                             <div key={idx} style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'between' }}>
                               <span>• {exInfo.name}</span>
-                              <span style={{ color: 'var(--color-cyan)' }}>{item.sets} เซต x {item.reps} ครั้ง ({item.weight} kg)</span>
+                              <span style={{ color: 'var(--color-cyan)' }}>
+                                {item.sets} {t('common.sets')} x {item.reps} {t('common.reps')} ({item.weight} kg)
+                              </span>
                             </div>
                           );
                         })}
@@ -350,18 +358,18 @@ export default function WorkoutView() {
                         style={{ background: 'var(--color-cyan)', color: 'black', border: 'none' }}
                         onClick={() => startWorkout(routine)}
                       >
-                        ▶ เริ่มออกกำลังกาย
+                        {t('workout.startBtn')}
                       </button>
                       <button 
                         className="cyber-btn cyber-btn-sm cyber-btn-secondary" 
                         style={{ padding: '4px 8px', fontSize: '0.65rem' }}
                         onClick={() => {
-                          if (window.confirm(`ต้องการลบโปรแกรม "${routine.name}" หรือไม่?`)) {
+                          if (window.confirm(t('workout.confirmDelete', { name: routine.name }))) {
                             deleteRoutine(routine.id);
                           }
                         }}
                       >
-                        ลบ
+                        {t('common.delete')}
                       </button>
                     </div>
                   </div>
@@ -377,17 +385,17 @@ export default function WorkoutView() {
         <div className="cyber-modal-overlay">
           <div className="cyber-modal" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">🔨 กำหนดตารางฝึกใหม่</h3>
+              <h3 className="modal-title">{t('workout.modalTitle')}</h3>
               <button className="modal-close" onClick={() => setShowCreateModal(false)}>×</button>
             </div>
             
             <form onSubmit={saveNewRoutine} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="cyber-input-group">
-                <label className="cyber-label">ชื่อตารางฝึก/โปรแกรม</label>
+                <label className="cyber-label">{t('workout.routineNameLabel')}</label>
                 <input 
                   type="text" 
                   className="cyber-input" 
-                  placeholder="เช่น Push Day (อก/ไหล่), เล่นขาเน้นสะโพก"
+                  placeholder={t('workout.routineNamePlace')}
                   value={newRoutineName}
                   onChange={(e) => setNewRoutineName(e.target.value)}
                   required
@@ -395,7 +403,7 @@ export default function WorkoutView() {
               </div>
 
               <div>
-                <label className="cyber-label" style={{ marginBottom: '8px', display: 'block' }}>เพิ่มท่าออกกำลังกายในโปรแกรม</label>
+                <label className="cyber-label" style={{ marginBottom: '8px', display: 'block' }}>{t('workout.addExLabel')}</label>
                 
                 {/* ดรอปดาวน์เลือกท่าฝึกที่มีอยู่ */}
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
@@ -410,7 +418,7 @@ export default function WorkoutView() {
                       }
                     }}
                   >
-                    <option value="" disabled>--- เลือกท่าฝึกแล้วกดเพิ่ม ---</option>
+                    <option value="" disabled>{t('workout.addExSelectPlace')}</option>
                     {exercises.map(ex => (
                       <option key={ex.id} value={ex.id}>
                         {ex.category} - {ex.name}
@@ -422,19 +430,19 @@ export default function WorkoutView() {
                 {/* รายชื่อท่าฝึกที่แอดเข้ามาในตาราง */}
                 {selectedBuilderExercises.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '16px', background: 'rgba(0,0,0,0.15)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    ยังไม่ได้เลือกท่าใดๆ กรุณาเลือกท่าฝึกจากดรอปดาวน์ด้านบน
+                    {t('workout.builderEmpty')}
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
                     {selectedBuilderExercises.map((item, idx) => {
-                      const exInfo = exercises.find(e => e.id === item.id) || { name: 'ท่าฝึก' };
+                      const exInfo = exercises.find(e => e.id === item.id) || { name: 'Exercise' };
                       return (
                         <div key={item.id} className="builder-exercise-row">
                           <span style={{ fontSize: '0.85rem', fontWeight: 'bold', maxWidth: '40%' }}>{exInfo.name}</span>
                           
                           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>เซต</span>
+                              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{t('workout.builderSet')}</span>
                               <input 
                                 type="number" 
                                 style={{ width: '45px', textAlign: 'center', background: 'black', border: '1px solid var(--glass-border)', color: 'white', fontSize: '0.75rem', padding: '2px' }}
@@ -445,7 +453,7 @@ export default function WorkoutView() {
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>ครั้ง</span>
+                              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{t('workout.builderRep')}</span>
                               <input 
                                 type="number" 
                                 style={{ width: '45px', textAlign: 'center', background: 'black', border: '1px solid var(--glass-border)', color: 'white', fontSize: '0.75rem', padding: '2px' }}
@@ -456,7 +464,7 @@ export default function WorkoutView() {
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>น้ำหนัก</span>
+                              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{t('workout.builderWeight')}</span>
                               <input 
                                 type="number" 
                                 style={{ width: '45px', textAlign: 'center', background: 'black', border: '1px solid var(--glass-border)', color: 'white', fontSize: '0.75rem', padding: '2px' }}
@@ -472,7 +480,7 @@ export default function WorkoutView() {
                               style={{ padding: '2px 6px', fontSize: '0.6rem', marginTop: '10px' }}
                               onClick={() => handleRemoveBuilderExercise(item.id)}
                             >
-                              ออก
+                              {t('workout.builderRemove')}
                             </button>
                           </div>
                         </div>
@@ -484,10 +492,10 @@ export default function WorkoutView() {
 
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'end', marginTop: '10px' }}>
                 <button type="button" className="cyber-btn cyber-btn-secondary" onClick={() => setShowCreateModal(false)}>
-                  ยกเลิก
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="cyber-btn cyber-btn-success">
-                  บันทึกตารางฝึก
+                  {t('workout.builderSaveBtn')}
                 </button>
               </div>
             </form>

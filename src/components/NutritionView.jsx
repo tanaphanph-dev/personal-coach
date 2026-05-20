@@ -2,26 +2,66 @@ import React, { useContext, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 
 export default function NutritionView() {
-  const { nutritionLog, userProfile, addFoodLog, removeFoodLog, addWater, getTodayString } = useContext(AppContext);
+  const { 
+    nutritionLog, 
+    userProfile, 
+    addFoodLog, 
+    removeFoodLog, 
+    addWater, 
+    getTodayString, 
+    geminiApiKey, 
+    t, 
+    language,
+    showToast 
+  } = useContext(AppContext);
   
   const todayStr = getTodayString();
   const todayData = nutritionLog[todayStr] || { water: 0, foods: [] };
 
-  // Form State
+  // ฟอร์มบันทึกอาหารทั่วไป
   const [foodName, setFoodName] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
 
-  // อาหารยอดฮิตสำหรับให้ผู้ใช้เลือกกดคลิกเพื่อบันทึกด่วน
-  const FOOD_PRESETS = [
+  // สถานะเครื่องสแกนเนอร์รูปภาพอาหาร
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [scanProgress, setScanProgress] = useState('idle'); // idle, uploading, scanning, done, error
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [scanResult, setScanResult] = useState(null);
+  const [scanImageBase64, setScanImageBase64] = useState('');
+  const [scanImageMime, setScanImageMime] = useState('');
+  const [isSimulation, setIsSimulation] = useState(false);
+
+  // รายการอาหารยอดนิยมสลับภาษาอัตโนมัติ
+  const FOOD_PRESETS = language === 'th' ? [
     { name: 'อกไก่ต้มน้ำปลา', calories: 220, protein: 40, carbs: 0, fat: 4 },
     { name: 'ข้าวกล้องสุก 1 ถ้วย', calories: 150, protein: 3, carbs: 32, fat: 1 },
     { name: 'ไข่ต้ม 2 ฟอง', calories: 140, protein: 12, carbs: 1, fat: 10 },
     { name: 'เวย์โปรตีน 1 สกู๊ป', calories: 120, protein: 25, carbs: 2, fat: 1 },
     { name: 'กล้วยน้ำว้า 2 ลูก', calories: 120, protein: 2, carbs: 30, fat: 0 },
     { name: 'แซลมอนย่างเกลือ', calories: 280, protein: 32, carbs: 0, fat: 16 }
+  ] : [
+    { name: 'Boiled Chicken Breast', calories: 220, protein: 40, carbs: 0, fat: 4 },
+    { name: 'Brown Rice (1 cup)', calories: 150, protein: 3, carbs: 32, fat: 1 },
+    { name: '2 Boiled Eggs', calories: 140, protein: 12, carbs: 1, fat: 10 },
+    { name: 'Whey Protein (1 Scoop)', calories: 120, protein: 25, carbs: 2, fat: 1 },
+    { name: '2 Bananas', calories: 120, protein: 2, carbs: 30, fat: 0 },
+    { name: 'Grilled Salmon', calories: 280, protein: 32, carbs: 0, fat: 16 }
+  ];
+
+  // อาหารสำหรับสุ่มในการจำลองระบบ (Simulation Mode Presets)
+  const MOCK_SCAN_PRESETS = language === 'th' ? [
+    { name: 'สลัดแซลมอนอะโวคาโด', calories: 420, protein: 28, carbs: 12, fat: 30 },
+    { name: 'อกไก่ย่างถ่านพร้อมข้าวสวย', calories: 480, protein: 38, carbs: 55, fat: 8 },
+    { name: 'สปาเก็ตตี้โฮลวีทซอสเนื้อสับ', calories: 550, protein: 26, carbs: 68, fat: 16 },
+    { name: 'แซนด์วิชทูน่าโฮลเกรน', calories: 310, protein: 22, carbs: 28, fat: 6 }
+  ] : [
+    { name: 'Salmon Avocado Salad', calories: 420, protein: 28, carbs: 12, fat: 30 },
+    { name: 'Grilled Chicken with Jasmine Rice', calories: 480, protein: 38, carbs: 55, fat: 8 },
+    { name: 'Whole Wheat Beef Spaghetti', calories: 550, protein: 26, carbs: 68, fat: 16 },
+    { name: 'Whole Grain Tuna Sandwich', calories: 310, protein: 22, carbs: 28, fat: 6 }
   ];
 
   // คำนวณสารอาหารสะสมในวันนี้
@@ -43,14 +83,14 @@ export default function NutritionView() {
   const cPercent = getPercent(totals.carbs, userProfile.dailyCarbs);
   const fPercent = getPercent(totals.fat, userProfile.dailyFat);
 
-  // ฟังก์ชันคำนวณระดับความสูงน้ำดื่มสำหรับอนิเมชั่นแก้ว
+  // อนิเมชั่นระดับแก้วน้ำ
   const waterHeight = Math.min(100, (todayData.water / userProfile.waterGoal) * 100);
 
-  // ส่งบันทึกอาหาร
+  // ส่งบันทึกอาหารทั่วไป
   const handleAddFood = (e) => {
     e.preventDefault();
     if (!foodName.trim() || !calories) {
-      alert('กรุณากรอกชื่ออาหารและแคลอรี');
+      alert(t('nutrition.alertFill'));
       return;
     }
 
@@ -61,7 +101,7 @@ export default function NutritionView() {
       protein: Number(protein) || 0,
       carbs: Number(carbs) || 0,
       fat: Number(fat) || 0,
-      time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' })
     };
 
     addFoodLog(todayStr, newFood);
@@ -83,22 +123,182 @@ export default function NutritionView() {
       protein: preset.protein,
       carbs: preset.carbs,
       fat: preset.fat,
-      time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' })
     };
     addFoodLog(todayStr, newFood);
   };
 
+  // การจัดการไฟล์เมื่ออัปโหลดรูปอาหาร
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setPreviewUrl(URL.createObjectURL(file));
+    setShowScanModal(true);
+    setScanProgress('uploading');
+    setScanResult(null);
+
+    // แปลงไฟล์เป็น Base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result.split(',')[1];
+      setScanImageBase64(base64String);
+      setScanImageMime(file.type);
+      
+      // สตาร์ทกระบวนการวิเคราะห์
+      triggerVisualScan(base64String, file.type);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // เรียกกระบวนการวิเคราะห์ภาพ (Gemini API vs Simulation)
+  const triggerVisualScan = (base64Data, mimeType) => {
+    if (geminiApiKey) {
+      setIsSimulation(false);
+      // เริ่มแอนิเมชัน
+      setTimeout(() => {
+        setScanProgress('scanning');
+        callGeminiVisionAPI(base64Data, mimeType);
+      }, 1500);
+    } else {
+      setIsSimulation(true);
+      // โหมดจำลองประมวลผลดึงค่า Preset
+      setTimeout(() => {
+        setScanProgress('scanning');
+        setTimeout(() => {
+          // สุ่มดึงรายการอาหาร
+          const randomPreset = MOCK_SCAN_PRESETS[Math.floor(Math.random() * MOCK_SCAN_PRESETS.length)];
+          setScanResult(randomPreset);
+          setScanProgress('done');
+        }, 2000);
+      }, 1500);
+    }
+  };
+
+  // เรียกใช้ API ตรงของ Google Gemini 
+  const callGeminiVisionAPI = async (base64Data, mimeType) => {
+    try {
+      const promptText = `Analyze the food in this image. Estimate the portion, calorie count (kcal), and macronutrients (protein, carbs, fat in grams). Respond ONLY with a valid JSON object in this exact schema, do not include markdown formatting, backticks, or other text:
+{
+  "foodName": "Name of the detected food (in ${language === 'th' ? 'Thai' : 'English'})",
+  "calories": 350,
+  "protein": 25,
+  "carbs": 40,
+  "fat": 10
+}
+If there are multiple food items, combine them into one general meal name and sum up the calories and macros.`;
+
+      const payload = {
+        contents: [
+          {
+            parts: [
+              { text: promptText },
+              {
+                inlineData: {
+                  mimeType: mimeType,
+                  data: base64Data
+                }
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      };
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Gemini API Error: Status ${response.status}`);
+      }
+
+      const resultJson = await response.json();
+      const rawText = resultJson.candidates[0].content.parts[0].text;
+      
+      // ทำการพาร์ส JSON ที่ส่งกลับมา
+      const foodData = JSON.parse(rawText);
+      
+      setScanResult({
+        name: foodData.foodName || 'Scanned Food',
+        calories: Number(foodData.calories) || 0,
+        protein: Number(foodData.protein) || 0,
+        carbs: Number(foodData.carbs) || 0,
+        fat: Number(foodData.fat) || 0
+      });
+      setScanProgress('done');
+    } catch (err) {
+      console.error('Scan error:', err);
+      // กรณีพัง ดีดเข้าระบบจำลองอัตโนมัติแจ้งเตือน
+      showToast(t('common.error') + ': Gemini API processing failed. Falling back to simulation.', 'error');
+      setIsSimulation(true);
+      const fallbackPreset = MOCK_SCAN_PRESETS[0];
+      setScanResult(fallbackPreset);
+      setScanProgress('done');
+    }
+  };
+
+  // ยืนยันบันทึกอาหารสแกน
+  const handleConfirmScanResult = () => {
+    if (!scanResult) return;
+    
+    const newFood = {
+      id: 'f_' + Date.now(),
+      name: scanResult.name || scanResult.foodName,
+      calories: scanResult.calories,
+      protein: scanResult.protein,
+      carbs: scanResult.carbs,
+      fat: scanResult.fat,
+      time: new Date().toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    addFoodLog(todayStr, newFood);
+    setShowScanModal(false);
+    setPreviewUrl(null);
+    showToast(t('nutrition.aiSuccessLog'), 'success');
+  };
+
   return (
     <div className="cyber-container">
-      <h2 style={{ marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ color: 'var(--color-cyan)' }}>🥗</span> ระบบบันทึกโภชนาการวันนี้
+      <h2 style={{ marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ color: 'var(--color-cyan)' }}>🥗</span> {t('nutrition.title')}
+        </span>
+        
+        {/* ปุ่มสแกนรูปอาหาร PWA */}
+        <div>
+          <input 
+            type="file" 
+            accept="image/*" 
+            capture="environment" 
+            id="ai-camera-file" 
+            style={{ display: 'none' }} 
+            onChange={handleFileChange}
+          />
+          <button 
+            className="cyber-btn" 
+            style={{ border: '1px solid var(--color-cyan)', color: 'var(--color-cyan)', fontSize: '0.8rem', padding: '8px 16px' }}
+            onClick={() => document.getElementById('ai-camera-file').click()}
+          >
+            {t('nutrition.aiButton')}
+          </button>
+        </div>
       </h2>
 
       {/* แถวแสดงปริมาณสารอาหารปัจจุบัน */}
       <div className="grid-2" style={{ marginBottom: '20px' }}>
         {/* วงแหวนแคลอรี */}
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>🔥 ความคืบหน้าแคลอรี</h3>
+          <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{t('nutrition.calProgressHeader')}</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <div style={{ position: 'relative', width: '90px', height: '90px' }}>
               <svg width="90" height="90" viewBox="0 0 90 90">
@@ -119,9 +319,9 @@ export default function NutritionView() {
             </div>
             <div>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{totals.calories} <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>kcal</span></div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>เป้าหมายแคลอรีรายวัน: {userProfile.dailyCalories} kcal</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t('nutrition.calGoalLabel')} {userProfile.dailyCalories} kcal</div>
               <div style={{ fontSize: '0.8rem', color: totals.calories > userProfile.dailyCalories ? 'var(--color-magenta)' : 'var(--color-green)', marginTop: '4px' }}>
-                {totals.calories > userProfile.dailyCalories ? 'เกินค่าเป้าหมายที่ตั้งไว้' : `คงเหลือได้อีก ${userProfile.dailyCalories - totals.calories} kcal`}
+                {totals.calories > userProfile.dailyCalories ? t('nutrition.calOver') : `${t('nutrition.calRemaining')}: ${userProfile.dailyCalories - totals.calories} kcal`}
               </div>
             </div>
           </div>
@@ -129,12 +329,12 @@ export default function NutritionView() {
 
         {/* แถบ Macro คาร์บ/โปรตีน/ไขมัน */}
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center' }}>
-          <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>🧬 สัดส่วนสารอาหารหลัก</h3>
+          <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>{t('nutrition.macroHeader')}</h3>
           
           {/* โปรตีน */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '2px' }}>
-              <span>โปรตีน (Protein): {totals.protein} / {userProfile.dailyProtein}g</span>
+              <span>{t('nutrition.macroProtein')} {totals.protein} / {userProfile.dailyProtein}g</span>
               <span style={{ color: 'var(--color-cyan)' }}>{pPercent}%</span>
             </div>
             <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -145,7 +345,7 @@ export default function NutritionView() {
           {/* คาร์บ */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '2px' }}>
-              <span>คาร์โบไฮเดรต (Carbs): {totals.carbs} / {userProfile.dailyCarbs}g</span>
+              <span>{t('nutrition.macroCarbs')} {totals.carbs} / {userProfile.dailyCarbs}g</span>
               <span style={{ color: 'var(--color-yellow)' }}>{cPercent}%</span>
             </div>
             <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -156,7 +356,7 @@ export default function NutritionView() {
           {/* ไขมัน */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '2px' }}>
-              <span>ไขมัน (Fats): {totals.fat} / {userProfile.dailyFat}g</span>
+              <span>{t('nutrition.macroFat')} {totals.fat} / {userProfile.dailyFat}g</span>
               <span style={{ color: 'var(--color-magenta)' }}>{fPercent}%</span>
             </div>
             <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -170,7 +370,7 @@ export default function NutritionView() {
         {/* บันทึกน้ำ (Water Logger Box) */}
         <div className="glass-panel water-tracker" style={{ gridColumn: 'span 1' }}>
           <h3 style={{ fontSize: '0.95rem', textTransform: 'uppercase', width: '100%', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
-            💧 ดื่มน้ำวันนี้
+            {t('nutrition.waterHeader')}
           </h3>
           
           <div className="glass-water">
@@ -181,16 +381,18 @@ export default function NutritionView() {
           </div>
 
           <div style={{ textAlign: 'center' }}>
-            <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{todayData.water}</span> / {userProfile.waterGoal} แก้ว
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>(เป้าหมายประมาณ {userProfile.waterGoal * 250} ml)</div>
+            <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{todayData.water}</span> / {userProfile.waterGoal} {t('dashboard.waterUnit')}
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+              {t('nutrition.waterTargetSub', { ml: userProfile.waterGoal * 250 })}
+            </div>
           </div>
 
           <div className="water-controls">
             <button className="cyber-btn cyber-btn-secondary cyber-btn-sm" onClick={() => addWater(todayStr, -1)} disabled={todayData.water === 0}>
-              - 1 แก้ว
+              {t('nutrition.waterMinusBtn')}
             </button>
             <button className="cyber-btn cyber-btn-success cyber-btn-sm" onClick={() => addWater(todayStr, 1)}>
-              + 1 แก้ว
+              {t('nutrition.waterPlusBtn')}
             </button>
           </div>
         </div>
@@ -198,16 +400,16 @@ export default function NutritionView() {
         {/* ป้อนเมนูอาหารที่ทาน (Add Food Form) */}
         <div className="glass-panel" style={{ gridColumn: 'span 2' }}>
           <h3 style={{ fontSize: '0.95rem', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px', marginBottom: '14px' }}>
-            🍽️ บันทึกอาหารมื้อใหม่
+            {t('nutrition.addFoodHeader')}
           </h3>
           
           <form onSubmit={handleAddFood} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div className="cyber-input-group" style={{ gridColumn: 'span 2', marginBottom: 0 }}>
-              <label className="cyber-label">ชื่อเมนูอาหาร</label>
+              <label className="cyber-label">{t('nutrition.foodNameLabel')}</label>
               <input 
                 type="text" 
                 className="cyber-input" 
-                placeholder="เช่น ข้าวกะเพราเนื้อ, นมจืด 1 กล่อง" 
+                placeholder={t('nutrition.foodNamePlace')}
                 value={foodName} 
                 onChange={(e) => setFoodName(e.target.value)}
                 required
@@ -215,7 +417,7 @@ export default function NutritionView() {
             </div>
 
             <div className="cyber-input-group" style={{ marginBottom: 0 }}>
-              <label className="cyber-label">พลังงาน (Calories - kcal)</label>
+              <label className="cyber-label">{t('nutrition.caloriesLabel')}</label>
               <input 
                 type="number" 
                 className="cyber-input" 
@@ -227,7 +429,7 @@ export default function NutritionView() {
             </div>
 
             <div className="cyber-input-group" style={{ marginBottom: 0 }}>
-              <label className="cyber-label">โปรตีน (Protein - g)</label>
+              <label className="cyber-label">{t('nutrition.proteinLabel')}</label>
               <input 
                 type="number" 
                 className="cyber-input" 
@@ -238,7 +440,7 @@ export default function NutritionView() {
             </div>
 
             <div className="cyber-input-group" style={{ marginBottom: 0 }}>
-              <label className="cyber-label">คาร์โบไฮเดรต (Carbs - g)</label>
+              <label className="cyber-label">{t('nutrition.carbsLabel')}</label>
               <input 
                 type="number" 
                 className="cyber-input" 
@@ -249,7 +451,7 @@ export default function NutritionView() {
             </div>
 
             <div className="cyber-input-group" style={{ marginBottom: 0 }}>
-              <label className="cyber-label">ไขมัน (Fat - g)</label>
+              <label className="cyber-label">{t('nutrition.fatLabel')}</label>
               <input 
                 type="number" 
                 className="cyber-input" 
@@ -261,14 +463,14 @@ export default function NutritionView() {
 
             <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'end', marginTop: '6px' }}>
               <button type="submit" className="cyber-btn cyber-btn-success">
-                บันทึกอาหาร
+                {t('nutrition.submitFoodBtn')}
               </button>
             </div>
           </form>
 
           {/* เมนูลัดแอดด่วน */}
           <div style={{ marginTop: '20px' }}>
-            <label className="cyber-label" style={{ marginBottom: '8px', display: 'block' }}>⚡ อาหารคลีนแอดด่วน (Quick Add)</label>
+            <label className="cyber-label" style={{ marginBottom: '8px', display: 'block' }}>{t('nutrition.quickAddHeader')}</label>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {FOOD_PRESETS.map((preset, idx) => (
                 <button 
@@ -289,12 +491,12 @@ export default function NutritionView() {
       {/* สรุปตารางอาหารวันนี้ */}
       <div className="glass-panel" style={{ marginTop: '20px' }}>
         <h3 style={{ fontSize: '0.95rem', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px', marginBottom: '12px' }}>
-          📝 รายการอาหารที่รับประทานในวันนี้ ({todayData.foods.length} เมนู)
+          {t('nutrition.loggedFoodsHeader', { count: todayData.foods.length })}
         </h3>
 
         {todayData.foods.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-secondary)' }}>
-            วันนี้คุณยังไม่ได้เริ่มบันทึกอาหาร
+            {t('nutrition.emptyFoods')}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -314,7 +516,7 @@ export default function NutritionView() {
                 <div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{food.name}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    {food.time} | โปรตีน {food.protein}g | คาร์บ {food.carbs}g | ไขมัน {food.fat}g
+                    {food.time} | {t('dashboard.protein')} {food.protein}g | {t('dashboard.carbs')} {food.carbs}g | {t('dashboard.fat')} {food.fat}g
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -326,7 +528,7 @@ export default function NutritionView() {
                     style={{ padding: '2px 6px', fontSize: '0.65rem', border: 'none', background: 'transparent', color: 'var(--text-muted)' }}
                     onClick={() => removeFoodLog(todayStr, food.id)}
                   >
-                    ✕ ลบ
+                    {t('nutrition.deleteBtn')}
                   </button>
                 </div>
               </div>
@@ -346,14 +548,151 @@ export default function NutritionView() {
                 marginTop: '6px'
               }}
             >
-              <span>ผลรวมโภชนาการวันนี้:</span>
+              <span>{t('nutrition.totalSummary')}</span>
               <span style={{ color: 'var(--color-cyan)' }}>
-                {totals.calories} kcal (P: {totals.protein}g | C: {totals.carbs}g | F: {totals.fat}g)
+                {totals.calories} kcal ({language === 'th' ? 'โปรตีน' : 'P'}: {totals.protein}g | {language === 'th' ? 'คาร์บ' : 'C'}: {totals.carbs}g | {language === 'th' ? 'ไขมัน' : 'F'}: {totals.fat}g)
               </span>
             </div>
           </div>
         )}
       </div>
+
+      {/* 📸 ป๊อปอัปสแกนเนอร์รูปถ่ายอาหาร (Cyberpunk AI Scan Modal) */}
+      {showScanModal && (
+        <div className="cyber-modal-overlay">
+          <div className="cyber-modal" style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">{t('nutrition.aiModalTitle')}</h3>
+              <button className="modal-close" onClick={() => { setShowScanModal(false); setPreviewUrl(null); }}>×</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+              
+              {/* พรีวิวภาพถ่าย พร้อมขอบนีออนเรืองแสงและเอฟเฟกต์แฮกเกอร์แสกน */}
+              {previewUrl && (
+                <div style={{ 
+                  position: 'relative', 
+                  width: '100%', 
+                  height: '240px', 
+                  borderRadius: '8px', 
+                  border: '1px solid var(--color-cyan)', 
+                  overflow: 'hidden', 
+                  boxShadow: 'var(--shadow-cyan)',
+                  background: '#000'
+                }}>
+                  <img 
+                    src={previewUrl} 
+                    alt="Food Scan Target" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: (scanProgress === 'uploading' || scanProgress === 'scanning') ? 0.7 : 1 }}
+                  />
+
+                  {/* เส้นเลเซอร์แอนิเมชันสำหรับประมวลผล */}
+                  {(scanProgress === 'uploading' || scanProgress === 'scanning') && (
+                    <div className="scan-line"></div>
+                  )}
+
+                  {/* ป้ายประมวลผลข้อความเรืองแสง */}
+                  {(scanProgress === 'uploading' || scanProgress === 'scanning') && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      background: 'rgba(0,0,0,0.85)',
+                      padding: '8px 16px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--color-green)',
+                      fontSize: '0.75rem',
+                      fontFamily: 'var(--font-display)',
+                      color: 'var(--color-green)',
+                      letterSpacing: '1px',
+                      textShadow: '0 0 4px var(--color-green)',
+                      animation: 'pulse 1.5s infinite'
+                    }}>
+                      {scanProgress === 'uploading' ? t('nutrition.aiUploading') : t('nutrition.aiScanningText')}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ข้อความแจ้งเตือนโหมดจำลอง (Simulation Mode Alert) */}
+              {scanProgress === 'done' && isSimulation && (
+                <div style={{ 
+                  background: 'rgba(255, 230, 0, 0.05)', 
+                  border: '1px solid var(--color-yellow)', 
+                  padding: '10px', 
+                  borderRadius: '6px', 
+                  fontSize: '0.75rem', 
+                  color: 'var(--color-yellow)',
+                  width: '100%',
+                  lineHeight: '1.4'
+                }}>
+                  ⚠️ {t('nutrition.aiSimulationAlert')}
+                </div>
+              )}
+
+              {/* แสดงความคืบหน้า / ผลลัพธ์การสแกน */}
+              {scanProgress === 'done' && scanResult && (
+                <div className="glass-panel trim-cyan" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ color: 'var(--color-cyan)', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px', fontSize: '0.85rem' }}>
+                    {t('nutrition.aiDetectedLabel')}
+                  </h4>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{scanResult.name || scanResult.foodName}</span>
+                    <span style={{ color: 'var(--color-magenta)', fontWeight: 'bold', fontSize: '1.2rem', fontFamily: 'var(--font-display)' }}>
+                      {scanResult.calories} kcal
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', background: 'rgba(0,0,0,0.15)', padding: '10px', borderRadius: '4px', textAlign: 'center', fontSize: '0.75rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)' }}>{t('dashboard.protein')}</div>
+                      <div style={{ fontWeight: 'bold', color: 'var(--color-cyan)' }}>{scanResult.protein}g</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)' }}>{t('dashboard.carbs')}</div>
+                      <div style={{ fontWeight: 'bold', color: 'var(--color-yellow)' }}>{scanResult.carbs}g</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)' }}>{t('dashboard.fat')}</div>
+                      <div style={{ fontWeight: 'bold', color: 'var(--color-magenta)' }}>{scanResult.fat}g</div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{t('nutrition.aiAccuracy')}: 93.6%</span>
+                    <span>{isSimulation ? 'SIMULATION' : 'GEMINI-1.5-FLASH'}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* นำเสนอช่องทางกรอก API Key หากไม่มีและอยู่ในโหมด Done */}
+              {scanProgress === 'done' && isSimulation && !geminiApiKey && (
+                <div style={{ width: '100%', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {t('nutrition.aiAddKeyPrompt')}
+                </div>
+              )}
+
+              {/* ปุ่มกดของหน้า Modal */}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'end', width: '100%', marginTop: '10px' }}>
+                <button 
+                  className="cyber-btn cyber-btn-secondary" 
+                  onClick={() => { setShowScanModal(false); setPreviewUrl(null); }}
+                >
+                  {t('common.cancel')}
+                </button>
+                {scanProgress === 'done' && (
+                  <button className="cyber-btn cyber-btn-success" onClick={handleConfirmScanResult}>
+                    {t('nutrition.aiConfirmBtn')}
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

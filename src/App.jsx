@@ -8,7 +8,7 @@ import ProfileView from './components/ProfileView';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { userProfile } = useContext(AppContext);
+  const { userProfile, language, setLanguage, t } = useContext(AppContext);
 
   // สลับแท็บหน้าเพจการแสดงผล
   const renderView = () => {
@@ -25,18 +25,6 @@ function AppContent() {
         return <ProfileView />;
       default:
         return <DashboardView />;
-    }
-  };
-
-  // ดึงหัวข้อหน้าเพจภาษาไทย
-  const getTabTitle = () => {
-    switch (activeTab) {
-      case 'dashboard': return 'แดชบอร์ดหลัก';
-      case 'workout': return 'ตารางออกกำลังกาย';
-      case 'exercises': return 'คลังท่าออกกำลังกาย';
-      case 'nutrition': return 'บันทึกโภชนาการ';
-      case 'profile': return 'โปรไฟล์ & เป้าหมาย';
-      default: return 'นีออนฟิตเนส';
     }
   };
 
@@ -70,26 +58,49 @@ function AppContent() {
     )
   };
 
+  const handleLanguageToggle = () => {
+    setLanguage(prev => prev === 'th' ? 'en' : 'th');
+  };
+
   return (
     <>
       {/* ส่วนบนของมือถือ (Mobile Header Bar) */}
       <header className="cyber-top-bar">
-        <span className="top-bar-title">⚡ NEON COACH</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>{userProfile.name}</span>
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{userProfile.weight} kg</span>
-          </div>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-cyan), var(--color-violet))', border: '1px solid var(--color-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', color: 'black' }}>
-            {userProfile.name.charAt(0)}
+        <span className="top-bar-title">⚡ {t('nav.title')}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* ปุ่มสลับภาษา TH/EN สำหรับมือถือ */}
+          <button 
+            className="cyber-btn" 
+            style={{ padding: '4px 8px', fontSize: '0.65rem', minWidth: '40px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={handleLanguageToggle}
+          >
+            {language === 'th' ? 'EN' : 'TH'}
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>{userProfile.name}</span>
+              <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{userProfile.weight} {t('common.kg')}</span>
+            </div>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-cyan), var(--color-violet))', border: '1px solid var(--color-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', color: 'black' }}>
+              {userProfile.name.charAt(0)}
+            </div>
           </div>
         </div>
       </header>
 
       {/* เมนูด้านข้างของหน้าจอคอม (Desktop Sidebar) */}
       <aside className="cyber-sidebar">
-        <div className="sidebar-logo">
-          <span>⚡ NEON COACH</span>
+        <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>⚡ {t('nav.title')}</span>
+          {/* ปุ่มสลับภาษา TH/EN สำหรับคอมพิวเตอร์ */}
+          <button 
+            className="cyber-btn" 
+            style={{ padding: '4px 8px', fontSize: '0.7rem', minWidth: '40px', textTransform: 'uppercase' }}
+            onClick={handleLanguageToggle}
+          >
+            {language === 'th' ? 'English' : 'ไทย'}
+          </button>
         </div>
 
         <ul className="sidebar-menu">
@@ -98,35 +109,35 @@ function AppContent() {
             onClick={() => setActiveTab('dashboard')}
           >
             <div style={{ width: '20px', height: '20px', stroke: 'currentColor' }}>{icons.dashboard}</div>
-            แดชบอร์ด
+            {t('nav.dashboard')}
           </li>
           <li 
             className={`sidebar-item ${activeTab === 'workout' ? 'active' : ''}`}
             onClick={() => setActiveTab('workout')}
           >
             <div style={{ width: '20px', height: '20px', stroke: 'currentColor' }}>{icons.workout}</div>
-            โปรแกรมการฝึก
+            {t('nav.workout')}
           </li>
           <li 
             className={`sidebar-item ${activeTab === 'exercises' ? 'active' : ''}`}
             onClick={() => setActiveTab('exercises')}
           >
             <div style={{ width: '20px', height: '20px', stroke: 'currentColor' }}>{icons.exercises}</div>
-            คลังท่าฝึก
+            {t('nav.exercises')}
           </li>
           <li 
             className={`sidebar-item ${activeTab === 'nutrition' ? 'active' : ''}`}
             onClick={() => setActiveTab('nutrition')}
           >
             <div style={{ width: '20px', height: '20px', stroke: 'currentColor' }}>{icons.nutrition}</div>
-            บันทึกอาหาร
+            {t('nav.nutrition')}
           </li>
           <li 
             className={`sidebar-item ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >
             <div style={{ width: '20px', height: '20px', stroke: 'currentColor' }}>{icons.profile}</div>
-            โปรไฟล์ & เป้าหมาย
+            {t('nav.profile')}
           </li>
         </ul>
 
@@ -137,7 +148,7 @@ function AppContent() {
           </div>
           <div style={{ overflow: 'hidden' }}>
             <div style={{ fontWeight: 'bold', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden', fontSize: '0.85rem' }}>{userProfile.name}</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>เป้าหมายแคล: {userProfile.dailyCalories}</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Cal Goal: {userProfile.dailyCalories}</div>
           </div>
         </div>
       </aside>
@@ -149,35 +160,35 @@ function AppContent() {
           onClick={() => setActiveTab('dashboard')}
         >
           {icons.dashboard}
-          <span>แดชบอร์ด</span>
+          <span>{t('nav.dashboard')}</span>
         </a>
         <a 
           className={`mobile-nav-item ${activeTab === 'workout' ? 'active' : ''}`}
           onClick={() => setActiveTab('workout')}
         >
           {icons.workout}
-          <span>ฝึกซ้อม</span>
+          <span>{t('nav.workout')}</span>
         </a>
         <a 
           className={`mobile-nav-item ${activeTab === 'exercises' ? 'active' : ''}`}
           onClick={() => setActiveTab('exercises')}
         >
           {icons.exercises}
-          <span>ท่าฝึก</span>
+          <span>{t('nav.exercises')}</span>
         </a>
         <a 
           className={`mobile-nav-item ${activeTab === 'nutrition' ? 'active' : ''}`}
           onClick={() => setActiveTab('nutrition')}
         >
           {icons.nutrition}
-          <span>อาหาร</span>
+          <span>{t('nav.nutrition')}</span>
         </a>
         <a 
           className={`mobile-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
           onClick={() => setActiveTab('profile')}
         >
           {icons.profile}
-          <span>เป้าหมาย</span>
+          <span>{t('nav.profile')}</span>
         </a>
       </nav>
 
