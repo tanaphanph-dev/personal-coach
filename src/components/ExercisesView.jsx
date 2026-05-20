@@ -1,0 +1,149 @@
+import React, { useContext, useState } from 'react';
+import { AppContext } from '../context/AppContext';
+
+export default function ExercisesView() {
+  const { exercises } = useContext(AppContext);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
+  const [activeDetailsExercise, setActiveDetailsExercise] = useState(null); // ตัวที่กำลังดูรายละเอียดอยู่
+
+  // หมวดหมู่กล้ามเนื้อสำหรับแสดงตัวกรอง
+  const categories = ['ทั้งหมด', 'Chest (อก)', 'Back (หลัง)', 'Legs (ขา)', 'Shoulders (ไหล่)', 'Arms (แขน)', 'Core (แกนกลาง)'];
+
+  // กรองรายชื่อท่าออกกำลังกายตามประเภทและการค้นหา
+  const filteredExercises = exercises.filter(ex => {
+    const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          ex.description.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'ทั้งหมด' || ex.category.includes(selectedCategory.split(' ')[0]);
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const getDifficultyBadgeClass = (diff) => {
+    switch (diff) {
+      case 'ง่าย': return 'badge-green';
+      case 'ปานกลาง': return 'badge-cyan';
+      case 'ยาก': return 'badge-magenta';
+      default: return 'badge-muted';
+    }
+  };
+
+  return (
+    <div className="cyber-container">
+      <h2 style={{ marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ color: 'var(--color-cyan)' }}>📖</span> คลังท่าออกกำลังกายอ้างอิง
+      </h2>
+
+      {/* แผงค้นหาและจัดระเบียบ */}
+      <div className="glass-panel" style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="cyber-input-group" style={{ marginBottom: 0 }}>
+          <label className="cyber-label">พิมพ์คำค้นหาท่าออกกำลังกาย</label>
+          <input 
+            type="text" 
+            className="cyber-input" 
+            placeholder="ค้นหาชื่อท่า, รายละเอียดการยก (เช่น Bench Press, หมอบ, สควอท)..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* เมนูตัวกรองกล้ามเนื้อ */}
+        <div>
+          <label className="cyber-label" style={{ marginBottom: '8px', display: 'block' }}>คัดกรองตามกลุ่มกล้ามเนื้อ</label>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {categories.map(cat => (
+              <button 
+                key={cat}
+                className={`cyber-btn cyber-btn-sm ${selectedCategory === cat ? '' : 'cyber-btn-secondary'}`}
+                style={{ fontSize: '0.7rem' }}
+                onClick={() => setSelectedCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* รายการแสดงท่าฝึกหลังการกรอง */}
+      {filteredExercises.length === 0 ? (
+        <div className="glass-panel" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)' }}>
+          ไม่พบข้อมูลท่าออกกำลังกายที่ตรงกับการค้นหาของคุณ
+        </div>
+      ) : (
+        <div className="exercise-list">
+          {filteredExercises.map(ex => {
+            return (
+              <div 
+                key={ex.id} 
+                className="exercise-card" 
+                onClick={() => setActiveDetailsExercise(ex)}
+              >
+                <div className="exercise-info">
+                  <div className="exercise-name">{ex.name}</div>
+                  <div className="exercise-meta">
+                    <span className="badge badge-cyan">{ex.category}</span>
+                    <span className={`badge ${getDifficultyBadgeClass(ex.difficulty)}`}>ระดับ: {ex.difficulty}</span>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--color-cyan)', fontSize: '0.8rem', fontFamily: 'var(--font-display)' }}>
+                    คลิกเพื่อเปิดดูคู่มือ ➔
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* หน้าต่างป๊อปอัปแสดงคำอธิบายและรูปทรง / ขั้นตอนออกกำลังกาย (Instruction Detail Modal) */}
+      {activeDetailsExercise && (
+        <div className="cyber-modal-overlay">
+          <div className="cyber-modal" style={{ maxWidth: '550px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">{activeDetailsExercise.name}</h3>
+              <button className="modal-close" onClick={() => setActiveDetailsExercise(null)}>×</button>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <span className="badge badge-cyan" style={{ fontSize: '0.75rem' }}>{activeDetailsExercise.category}</span>
+              <span className={`badge ${getDifficultyBadgeClass(activeDetailsExercise.difficulty)}`} style={{ fontSize: '0.75rem' }}>
+                ความยาก: {activeDetailsExercise.difficulty}
+              </span>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ fontSize: '0.85rem', color: 'var(--color-cyan)', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>
+                คำอธิบายและเป้าหมาย
+              </h4>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                {activeDetailsExercise.description}
+              </p>
+            </div>
+
+            <div>
+              <h4 style={{ fontSize: '0.85rem', color: 'var(--color-magenta)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                ขั้นตอนการปฏิบัติอย่างถูกต้อง
+              </h4>
+              <ol style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                {activeDetailsExercise.instructions.map((step, idx) => (
+                  <li key={idx}>
+                    <span style={{ color: '#fff' }}>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'end' }}>
+              <button className="cyber-btn cyber-btn-secondary" onClick={() => setActiveDetailsExercise(null)}>
+                ปิดคู่มือ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
