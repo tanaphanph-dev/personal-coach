@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 
 export default function WorkoutView() {
-  const { routines, exercises, addWorkoutLog, addRoutine, deleteRoutine, getTodayString, t, language } = useContext(AppContext);
+  const { routines, exercises, addWorkoutLog, addRoutine, deleteRoutine, getTodayString, t, language, showToast } = useContext(AppContext);
 
   // States สำหรับสลับโหมด
   const [activeWorkout, setActiveWorkout] = useState(null); // โปรแกรมที่กำลังฝึกอยู่
@@ -108,7 +108,8 @@ export default function WorkoutView() {
     const completedExercises = [];
 
     workoutState.exercises.forEach(ex => {
-      const completedSets = ex.sets.filter(s => s.completed);
+      // ค้นหาเซตที่ทำสำเร็จ หรือเซตที่ผู้ใช้กรอกไว้ (reps > 0)
+      const completedSets = ex.sets.filter(s => s.completed || s.reps > 0);
       if (completedSets.length > 0) {
         completedSets.forEach(s => {
           totalVolume += s.reps * s.weight;
@@ -127,7 +128,7 @@ export default function WorkoutView() {
     });
 
     if (completedExercises.length === 0) {
-      alert(t('workout.alertDoneSet'));
+      showToast(t('workout.alertDoneSet'), 'error');
       return;
     }
 
@@ -186,11 +187,11 @@ export default function WorkoutView() {
   const saveNewRoutine = (e) => {
     e.preventDefault();
     if (!newRoutineName.trim()) {
-      alert(t('workout.alertName'));
+      showToast(t('workout.alertName'), 'error');
       return;
     }
     if (selectedBuilderExercises.length === 0) {
-      alert(t('workout.alertEx'));
+      showToast(t('workout.alertEx'), 'error');
       return;
     }
 

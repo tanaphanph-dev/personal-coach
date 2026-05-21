@@ -143,7 +143,7 @@ Today's current consumed nutrients:
 Last 3 workouts logged:
 ${JSON.stringify(simplifiedHistory, null, 2)}
 
-Exercise Library available (Use only these exercise IDs if suggesting a routine):
+Exercise Library available (Our library is expanded to 25 specialized exercises covering Chest, Back, Legs, Shoulders, Arms, and Core. Use only these exercise IDs if suggesting a routine):
 ${JSON.stringify(libraryExercises, null, 2)}
 
 IF YOU ARE SUGGESTING OR DESIGNING A WORKOUT ROUTINE, you must include a JSON codeblock with this exact structure:

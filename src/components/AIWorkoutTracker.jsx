@@ -2,11 +2,21 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 
 export default function AIWorkoutTracker() {
-  const { gainXpAndChips, showToast, t, language } = useContext(AppContext);
+  const { gainXpAndChips, showToast, t, language, addWorkoutLog, getTodayString } = useContext(AppContext);
   const [isActive, setIsActive] = useState(false);
   const [selectedEx, setSelectedEx] = useState('squat');
   const [reps, setReps] = useState(0);
   const [statusText, setStatusText] = useState('System Offline');
+  
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 992);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 992);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -363,33 +373,90 @@ export default function AIWorkoutTracker() {
   const saveRepsToLog = () => {
     if (reps === 0) return;
     
-    // Save to user history using context XP distributor
+    const exerciseName = selectedEx === 'squat' 
+      ? t('aitracker.squat') 
+      : selectedEx === 'pushup' 
+        ? t('aitracker.pushup') 
+        : t('aitracker.curl');
+
+    const exerciseId = selectedEx === 'squat' 
+      ? 'ex3' 
+      : selectedEx === 'pushup' 
+        ? 'ex8' 
+        : 'ex5';
+
+    const logEntry = {
+      id: 'h_' + Date.now(),
+      routineName: 'AI Optical Session (' + exerciseName + ')',
+      date: getTodayString(),
+      durationSeconds: Math.max(30, reps * 3), // Estimated duration
+      totalVolume: selectedEx === 'pushup' ? 0 : reps * 15,
+      exercises: [
+        {
+          id: exerciseId,
+          name: exerciseName,
+          sets: [
+            {
+              reps: reps,
+              weight: selectedEx === 'pushup' ? 0 : 15,
+              completed: true
+            }
+          ]
+        }
+      ]
+    };
+
+    addWorkoutLog(logEntry);
+    
+    // Extra bonus rewards for using AI camera!
     gainXpAndChips(15, 10);
     playSuccessSound();
-    showToast(t('aitracker.toastSaved'), 'success');
     
     // Reset tracker count
     setReps(0);
   };
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div>
-        <h2 className="text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 uppercase">
-          {t('aitracker.title')}
+        <h2 style={{ marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-cyan)', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>🛸</span> {t('aitracker.title')}
         </h2>
-        <p className="text-xs text-gray-400">
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
           {t('aitracker.desc')}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid-3">
         
         {/* WEBCAM FEED & SKELETON RENDERER */}
-        <div className="lg:col-span-2 glass-panel p-4 flex flex-col items-center justify-center relative overflow-hidden bg-black/60 min-h-[300px]">
-          <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
-            <span className={`w-2.5 h-2.5 rounded-full ${isActive ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`}></span>
-            <span className="text-[10px] text-gray-400 font-mono tracking-widest uppercase">{statusText}</span>
+        <div 
+          className="glass-panel" 
+          style={{ 
+            gridColumn: isDesktop ? 'span 2' : 'span 1', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            position: 'relative', 
+            overflow: 'hidden', 
+            backgroundColor: 'rgba(0,0,0,0.6)', 
+            minHeight: '320px',
+            padding: '16px'
+          }}
+        >
+          <div style={{ position: 'absolute', top: '12px', left: '12px', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 10 }}>
+            <span style={{ 
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%', 
+              background: isActive ? 'var(--color-green)' : 'var(--color-magenta)', 
+              boxShadow: isActive ? 'var(--shadow-green)' : 'var(--shadow-magenta)', 
+              display: 'inline-block'
+            }}></span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              {statusText}
+            </span>
           </div>
 
           {/* Hidden HTML5 video element */}
@@ -407,21 +474,50 @@ export default function AIWorkoutTracker() {
             ref={canvasRef}
             width="320"
             height="240"
-            className="w-full max-w-[480px] aspect-[4/3] rounded-lg border border-gray-800 bg-slate-950/80 scale-x-[-1]"
             style={{
-              boxShadow: isActive ? '0 0 15px rgba(0, 255, 255, 0.15)' : 'none'
+              width: '100%',
+              maxWidth: '480px',
+              aspectRatio: '4/3',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              background: '#040508',
+              transform: 'scaleX(-1)',
+              boxShadow: isActive ? 'var(--shadow-cyan)' : 'none',
+              transition: 'var(--transition-normal)'
             }}
           />
 
           {!isActive && (
             <button
               onClick={startCamera}
-              className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 transition-all hover:bg-black/80 group"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(8, 9, 13, 0.9)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'var(--transition-normal)'
+              }}
             >
-              <div className="w-16 h-16 rounded-full border border-cyan-400/50 flex items-center justify-center mb-3 group-hover:border-cyan-400 group-hover:shadow-[0_0_10px_rgba(0,255,255,0.4)] transition-all">
-                <span className="text-2xl text-cyan-400 group-hover:scale-110 transition-all">📷</span>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                border: '1px solid var(--color-cyan)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '12px',
+                boxShadow: 'var(--shadow-cyan)',
+                background: 'rgba(0,255,255,0.05)'
+              }}>
+                <span style={{ fontSize: '1.8rem', color: 'var(--color-cyan)' }}>📷</span>
               </div>
-              <span className="text-xs text-cyan-400 uppercase tracking-widest font-bold">
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-cyan)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', fontFamily: 'var(--font-display)' }}>
                 {t('aitracker.startCamera')}
               </span>
             </button>
@@ -430,7 +526,8 @@ export default function AIWorkoutTracker() {
           {isActive && (
             <button
               onClick={stopCamera}
-              className="absolute bottom-3 right-3 cyber-button-magenta text-[10px] py-1.5 px-3 uppercase tracking-wider"
+              className="cyber-btn cyber-btn-secondary cyber-btn-sm"
+              style={{ position: 'absolute', bottom: '12px', right: '12px', zIndex: 11 }}
             >
               {t('aitracker.stopCamera')}
             </button>
@@ -438,15 +535,15 @@ export default function AIWorkoutTracker() {
         </div>
 
         {/* HUD PANEL: CONTROL AND TELEMETRY */}
-        <div className="flex flex-col gap-5 justify-between">
-          <div className="glass-panel p-5 space-y-4">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-800 pb-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', justifyContent: 'space-between' }}>
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px' }}>
+            <h3 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px', margin: 0 }}>
               🛰️ Telemetry & Calibration
             </h3>
 
             {/* Select Exercise */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] text-gray-400 uppercase font-bold">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px' }}>
                 {t('aitracker.selectExercise')}
               </label>
               <select
@@ -457,7 +554,8 @@ export default function AIWorkoutTracker() {
                   playBeep(440, 0.1);
                 }}
                 disabled={isActive}
-                className="cyber-input text-xs w-full"
+                className="cyber-select"
+                style={{ width: '100%' }}
               >
                 <option value="squat">{t('aitracker.squat')}</option>
                 <option value="pushup">{t('aitracker.pushup')}</option>
@@ -466,12 +564,12 @@ export default function AIWorkoutTracker() {
             </div>
 
             {/* Rep Counter Banner */}
-            <div className="bg-black/50 border border-gray-800 rounded p-4 text-center space-y-1">
-              <span className="text-[10px] text-gray-400 uppercase font-mono">{t('aitracker.count')}</span>
-              <div className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 font-mono tracking-widest animate-pulse">
+            <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '6px', padding: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-display)' }}>{t('aitracker.count')}</span>
+              <div style={{ fontSize: '3rem', fontWeight: '900', color: 'var(--color-cyan)', fontFamily: 'var(--font-display)', letterSpacing: '2px', textShadow: 'var(--shadow-cyan)' }}>
                 {reps}
               </div>
-              <div className="text-[9px] text-yellow-400 animate-bounce pt-1">
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-yellow)', paddingTop: '4px' }}>
                 🏆 {t('aitracker.bonusXp')}
               </div>
             </div>
@@ -480,37 +578,34 @@ export default function AIWorkoutTracker() {
             <button
               onClick={saveRepsToLog}
               disabled={reps === 0}
-              className="cyber-button w-full uppercase text-xs font-bold tracking-wider py-2.5"
-              style={{
-                opacity: reps === 0 ? 0.4 : 1,
-                cursor: reps === 0 ? 'not-allowed' : 'pointer'
-              }}
+              className="cyber-btn cyber-btn-success"
+              style={{ width: '100%', justifyContent: 'center' }}
             >
               💾 {t('aitracker.saveToLog')}
             </button>
           </div>
 
           {/* AI BIO-GRID STATUS */}
-          <div className="glass-panel p-4 bg-black/40 font-mono text-[9px] space-y-1.5 text-gray-500">
-            <div className="flex justify-between">
+          <div className="glass-panel" style={{ padding: '16px', background: 'rgba(0,0,0,0.2)', fontFamily: 'var(--font-display)', fontSize: '0.65rem', display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--text-muted)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>CYBERNETIC SYNC:</span>
-              <span className={isActive ? 'text-cyan-400' : 'text-red-500'}>{isActive ? 'ONLINE' : 'OFFLINE'}</span>
+              <span style={{ color: isActive ? 'var(--color-cyan)' : 'var(--color-magenta)' }}>{isActive ? 'ONLINE' : 'OFFLINE'}</span>
             </div>
-            <div className="flex justify-between">
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>ANGLE SENSOR:</span>
-              <span className="text-gray-300">CALIBRATING (98.4°)</span>
+              <span style={{ color: 'var(--text-secondary)' }}>CALIBRATING (98.4°)</span>
             </div>
-            <div className="flex justify-between">
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>POSTURE CHECK:</span>
-              <span className="text-emerald-400">OPTIMAL</span>
+              <span style={{ color: 'var(--color-green)' }}>OPTIMAL</span>
             </div>
-            <div className="flex justify-between">
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>FRAME DIFFERENCE:</span>
-              <span className="text-gray-300">ACTIVE (SENSITIVE)</span>
+              <span style={{ color: 'var(--text-secondary)' }}>ACTIVE (SENSITIVE)</span>
             </div>
-            <div className="flex justify-between">
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>SYNAPSE CHIPS FEED:</span>
-              <span className="text-yellow-400">+15 XP APPLIED ON LOG</span>
+              <span style={{ color: 'var(--color-yellow)' }}>+15 XP APPLIED ON LOG</span>
             </div>
           </div>
         </div>
